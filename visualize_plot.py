@@ -111,37 +111,46 @@ color_bar = ColorBar(color_mapper=color_mapper,
                      label_standoff=12, border_line_color=None, location=(0,0))
 p.add_layout(color_bar, 'right')
 
-callback_tap=CustomJS(args={"source":source},
-                            code="""
-               display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])""")
+code = """
+display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])
+"""[1:-1]
+callback_tap = CustomJS(
+        args = {"source":source},
+        code = code,
+        )
 taptool = p.select(type=TapTool)
 taptool.callback = callback_tap
 
-callback_hover = CustomJS(args={'title': p.title, "source":source}, code="""
-    const indices = cb_data.index.indices;
-    display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
-    //title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
-""")
+code="""
+const indices = cb_data.index.indices;
+display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
+//title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
+"""[1:-1]
+callback_hover = CustomJS(
+        args = {'title': p.title, "source":source},
+        code = code,
+        )
 p.hover.callback = callback_hover
 
-
 save(p)
-#show(p)
 
 
 # Add 3dmol.js
-
-newfile=""
-err=False
+newfile = ''
+err = False
 
 
 with open("index.html") as out:
     for line in out.readlines():
-        if "3Dmol.csb" in line: err =True; break
 
-        if "</head>" in line: continue
+        if "3Dmol.csb" in line:
+            err = True
+            break
+
+        if "</head>" in line:
+            continue
         if "<body>" in line:
-            newfile+="""
+            newfile += """
                                <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 
           <style>
@@ -234,13 +243,13 @@ display_xyz('"""+p_xyzs[0]+"""');
             """; continue
 
         if "<\body>" in line:
-            newfile+="""
+            newfile += """
             </td></tr></table>
             </body>
             """
             continue
 
-        newfile+=line
+        newfile += line
 
 if not err:
     with open("index.html","w") as out:
