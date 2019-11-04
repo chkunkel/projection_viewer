@@ -4,6 +4,7 @@
 import os
 import shutil
 import configparser
+import argparse
 
 import itertools as ito
 import numpy as np
@@ -20,6 +21,23 @@ from bokeh.models import LinearColorMapper, Ticker, ColorBar
 
 import helpers
 import tooltips
+
+
+# command-line adjustments
+parser = argparse.ArgumentParser()
+parser.add_argument( \
+        '--x_axis',
+        help = 'Dimension used on x-axis',
+        default=1,
+        type = int)
+parser.add_argument( \
+        '--y_axis',
+        help = 'Dimension used on y-axis',
+        default=2,
+        type = int)
+args = parser.parse_args()
+
+
 
 # read config
 config = configparser.ConfigParser()
@@ -90,25 +108,31 @@ p.background_fill_color = 'beige'
 color_mapper = LinearColorMapper(palette='Viridis256', low=min(feature), high=max(feature))
 
 source = ColumnDataSource({
-    "index"     : range(len(Y)),
-    "x1"  : embedding_coordinates[:, 0].tolist(),
-    "x2"  : embedding_coordinates[:, 1].tolist(),
-    "feature"  : Y,
-    "p_xyzs": p_xyzs,
-    "atomic_num": atomic_numbers})
+    'index'      :  range(len(feature)),
+    'x1'         :  embedding_coordinates[:, args.x_axis].tolist(),
+    'x2'         :  embedding_coordinates[:, args.y_axis].tolist(),
+    'feature'    :  feature,
+    'p_xyzs'     :  p_xyzs,
+    'atomic_num' :  atomic_numbers,
+    })
 
-r_circles=p.scatter("x1",
-                    "x2",
-                    size=4,
-                    alpha=0.3,
-                    source=source,
-                    level="overlay",
-                    line_width=4.5,
-                    color={'field': 'feature', 'transform': color_mapper})
+r_circles = p.scatter(
+        'x1',
+        'x2',
+        size = 4,
+        alpha = 0.3,
+        source = source,
+        level = 'overlay',
+        line_width = 4.5,
+        color = {'field': 'feature', 'transform': color_mapper},
+        )
 
-
-color_bar = ColorBar(color_mapper=color_mapper,
-                     label_standoff=12, border_line_color=None, location=(0,0))
+color_bar = ColorBar(
+        color_mapper = color_mapper,
+        label_standoff = 12,
+        border_line_color = None,
+        location = (0,0)
+        )
 p.add_layout(color_bar, 'right')
 
 code = """
