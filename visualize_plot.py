@@ -4,7 +4,9 @@
 import os
 import shutil
 import configparser
+import argparse
 
+import itertools as ito
 import numpy as np
 import pandas as pd
 
@@ -17,129 +19,162 @@ from bokeh import events
 import bokeh.io
 from bokeh.models import LinearColorMapper, Ticker, ColorBar
 
-from helpers import get_features_atomic, get_features_molecular
-from tooltips import tooltips
+import helpers
+import tooltips
 
+
+# command-line adjustments
+parser = argparse.ArgumentParser()
+parser.add_argument( \
+        '--x_axis',
+        help = 'Dimension used on x-axis',
+        default=1,
+        type = int)
+parser.add_argument( \
+        '--y_axis',
+        help = 'Dimension used on y-axis',
+        default=2,
+        type = int)
+args = parser.parse_args()
+
+
+
+# read config
 config = configparser.ConfigParser()
 config.read('config.txt')
 extended_xyz_file =   config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
+coord_key = config['Basic']['coord_key']
 property_visualize = config['Basic']['property_visualize']
 dimensions = config['Basic']['dimensions']
 consider_species = config['Basic']['consider_species']
 title = config['Basic']['title']
 
 
+# read atoms
 atoms = read(extended_xyz_file,':')
 
-print('Writing molecules')
-#if os.path.isdir('data_plot'):
-#    shutil.rmtree('data_plot')
-#os.mkdir('data_plot')
-#[mol.write('data_plot/mol_{}.xyz'.format(i)) for i,mol in enumerate(atoms)]
 
-
-if consider_species=='all':
-    consider_species = list(set(atoms[0].get_chemical_symbols()))
+# collect data
+if '[' in consider_species:
+    consider_species = list(consider_species)
+elif consider_species == 'all':
+    consider_species = list(set(ito.chain(*[atoms_i.get_chemical_symbols() for atoms_i in atoms])))
 else:
-    consider_species = consider_species.split(',')
-
+    consider_species = str(consider_species)
 
 if mode =='atomic':
-    Y = get_features_atomic(property_visualize, atoms, consider_species = consider_species)
-    p_xyzs = [['mol_{}.xyz'.format(i)]*len(mol) for i,mol in enumerate(atoms)]
-    p_xyzs = [item for sublist in p_xzys for item in sublist]
+    feature = helpers.get_features_atomic(property_visualize, atoms, consider_species = consider_species)
+    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
+    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
+    # p_xyzs = [item for sublist in p_xzys for item in sublist]
     atomic_numbers = [range(len(mol)) for mol in atoms]
-    atomic_numbers = list(np.array(atomic_numbers).flatten())  
-else:
-    Y = get_features_molecular(property_visualize, atoms); atomic_numbers=[]
-    p_xyzs = ['mol_{}.xyz'.format(i) for i,mol in enumerate(atoms)]
-    atomic_numbers = [-1]*len(Y)
+    atomic_numbers = list(np.array(atomic_numbers).flatten())
+    # atomic_numbers = helpers.get_features_atomic('numbers', atoms, consider_species)
+    embedding_coordinates = np.asarray(helpers.get_features_atomic(coord_key, atoms, consider_species))
+elif mode in ['compound', 'generic']:
+    feature = helpers.get_features_molecular(property_visualize, atoms)
+    p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
+    mols = [mol for mol in atoms]
+    atomic_numbers = [-1]*len(feature)
+    embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
 
 
-embedding_coordinates=np.array([mol.info['pca_coord'] for mol in atoms])
+# write molecules
+print('Writing molecules')
+if os.path.isdir('data_plot'):
+    shutil.rmtree('data_plot')
+os.mkdir('data_plot')
+for p_xyz_i, mol_i in zip(p_xyzs, mols):
+    ase.io.write(os.path.join('data_plot', p_xyz_i), mol_i)
 
 
-bokeh.io.output_file('index.html')
-
-
+# prepare visualization
 print("Layouting the final plot")
 
+bokeh.io.output_file('index.html')
+hover = HoverTool(tooltips=tooltips.tooltips[mode])
+TOOLS = "crosshair,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select,poly_select,lasso_select,"
 
-hover = HoverTool(tooltips=tooltips[mode])
-
-
-TOOLS="crosshair,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select,poly_select,lasso_select,"
-
-
-p = figure(title=title, x_axis_label='dimension 1', y_axis_label='dimension 2',
-           plot_width=900,plot_height=700,tools=[TOOLS, hover])
-
-
-p.background_fill_color = "beige"
-
-
-color_mapper = LinearColorMapper(palette='Viridis256', low=min(Y), high=max(Y))
-#color_mapper = LinearColorMapper(palette='Spectral10', low=70, high=500)
-#color_mapper = LinearColorMapper(palette='Viridis256', low=20, high=32)
-# color_mapper = LinearColorMapper(palette='Viridis256', low=10, high=160)
-# color_mapper = LinearColorMapper(palette='Viridis256', low=0, high=int(dict_config["color_high"]))  # SPW: dict_config["color_high"] was formally an int (e.g. 3)
-
-
+p = figure(
+        title = title,
+        x_axis_label = 'Dimension 1',
+        y_axis_label = 'Dimension 2',
+        plot_width = 900,
+        plot_height = 700,
+        tools = [TOOLS, hover],
+        )
+p.background_fill_color = 'beige'
+color_mapper = LinearColorMapper(palette='Viridis256', low=min(feature), high=max(feature))
 
 source = ColumnDataSource({
-    "index"     : range(len(Y)),
-    "x1"  : embedding_coordinates[:, 0].tolist(),
-    "x2"  : embedding_coordinates[:, 1].tolist(),
-    "feature"  : Y,
-    "p_xyzs": p_xyzs,
-    "atomic_num": atomic_numbers})
+    'index'      :  range(len(feature)),
+    'x1'         :  embedding_coordinates[:, args.x_axis].tolist(),
+    'x2'         :  embedding_coordinates[:, args.y_axis].tolist(),
+    'feature'    :  feature,
+    'p_xyzs'     :  p_xyzs,
+    'atomic_num' :  atomic_numbers,
+    })
 
-r_circles=p.scatter("x1",
-                    "x2",
-                    size=4,
-                    alpha=0.3,
-                    source=source,
-                    level="overlay",
-                    line_width=4.5,
-                    color={'field': 'feature', 'transform': color_mapper})
+r_circles = p.scatter(
+        'x1',
+        'x2',
+        size = 4,
+        alpha = 0.3,
+        source = source,
+        level = 'overlay',
+        line_width = 4.5,
+        color = {'field': 'feature', 'transform': color_mapper},
+        )
 
-
-color_bar = ColorBar(color_mapper=color_mapper,
-                     label_standoff=12, border_line_color=None, location=(0,0))
+color_bar = ColorBar(
+        color_mapper = color_mapper,
+        label_standoff = 12,
+        border_line_color = None,
+        location = (0,0)
+        )
 p.add_layout(color_bar, 'right')
 
-callback_tap=CustomJS(args={"source":source},
-                            code="""
-               display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])""")
+code = """
+display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])
+"""[1:-1]
+callback_tap = CustomJS(
+        args = {"source":source},
+        code = code,
+        )
 taptool = p.select(type=TapTool)
 taptool.callback = callback_tap
 
-callback_hover = CustomJS(args={'title': p.title, "source":source}, code="""
-    const indices = cb_data.index.indices;
-    display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
-    //title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
-""")
+code="""
+const indices = cb_data.index.indices;
+display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
+//title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
+"""[1:-1]
+callback_hover = CustomJS(
+        args = {'title': p.title, "source":source},
+        code = code,
+        )
 p.hover.callback = callback_hover
 
-
 save(p)
-#show(p)
 
 
 # Add 3dmol.js
-
-newfile=""
-err=False
+newfile = ''
+err = False
 
 
 with open("index.html") as out:
     for line in out.readlines():
-        if "3Dmol.csb" in line: err =True; break
 
-        if "</head>" in line: continue
+        if "3Dmol.csb" in line:
+            err = True
+            break
+
+        if "</head>" in line:
+            continue
         if "<body>" in line:
-            newfile+="""
+            newfile += """
                                <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 
           <style>
@@ -232,13 +267,13 @@ display_xyz('"""+p_xyzs[0]+"""');
             """; continue
 
         if "<\body>" in line:
-            newfile+="""
+            newfile += """
             </td></tr></table>
             </body>
             """
             continue
 
-        newfile+=line
+        newfile += line
 
 if not err:
     with open("index.html","w") as out:
