@@ -3,7 +3,8 @@
 dimensions=2 
 # embedding dimensions to visualize
 
-extended_xyz_file=ASAP-pca-d6.xyz 
+#extended_xyz_file=ASAP-pca-d6.xyz 
+extended_xyz_file=mols.xyz 
 # path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
 
 property_visualize=TotEnergy 
