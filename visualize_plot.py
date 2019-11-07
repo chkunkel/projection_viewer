@@ -78,12 +78,12 @@ app.layout = html.Div(children=[
         html.Label(["x-axis",
             dcc.Dropdown(
                 id='x-axis',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(len(embedding_coordinates))],
+                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
                 value=0)]),
         html.Label(["y-axis",
             dcc.Dropdown(
                 id='y-axis',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(len(embedding_coordinates))],
+                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
                 value=1)]),
     ], style={'width': '20%', 'display': 'inline-block'}),
 
