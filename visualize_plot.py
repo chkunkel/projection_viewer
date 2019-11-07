@@ -1,10 +1,6 @@
-# This file is part of the projection_viewer.
-# (C) 2019 Christian Kunkel
-
 import os
 import shutil
 import configparser
-import argparse
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -12,35 +8,10 @@ import plotly.graph_objs as go
 
 import itertools as ito
 import numpy as np
-import pandas as pd
 
 import ase.io
-from ase.io import read
-
-# from bokeh.plotting import figure, output_file, show, save, ColumnDataSource
-# from bokeh.models import HoverTool, CustomJSHover, TapTool, CustomJS
-# from bokeh import events
-# import bokeh.io
-# from bokeh.models import LinearColorMapper, Ticker, ColorBar
 
 import helpers
-# import tooltips
-
-
-# command-line adjustments
-parser = argparse.ArgumentParser()
-parser.add_argument( \
-        '--x_axis',
-        help = 'Dimension used on x-axis',
-        default=0,
-        type = int)
-parser.add_argument( \
-        '--y_axis',
-        help = 'Dimension used on y-axis',
-        default=1,
-        type = int)
-args = parser.parse_args()
-
 
 
 # read config
@@ -56,7 +27,7 @@ title = config['Basic']['title']
 
 
 # read atoms
-atoms = read(extended_xyz_file,':')
+atoms = ase.io.read(extended_xyz_file,':')
 
 
 # collect data
@@ -100,13 +71,8 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-
 app.layout = html.Div(children=[
     html.H1(children=title),
-
-    html.Div(children='''
-        projection_viewer: We need a more fancy name.
-    '''),
 
     html.Div([
         html.Label(["x-axis",
@@ -126,8 +92,8 @@ app.layout = html.Div(children=[
             id='graph',
             figure={
                 'data': [
-                    {'x': embedding_coordinates[:, args.x_axis].tolist(),
-                     'y': embedding_coordinates[:, args.y_axis].tolist(),
+                    {'x': embedding_coordinates[:, 0].tolist(),
+                     'y': embedding_coordinates[:, 1].tolist(),
                      'mode': 'markers',
                      'name': 'TODO'},
                 ],
