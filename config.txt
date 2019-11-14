@@ -9,13 +9,19 @@ extended_xyz_file=test.xyz
 property_visualize=TotEnergy 
 # this property will be used for coloring. For atomic embedding give column number in xyze file
 
-mode=generic
+mode=atomic
 # can be "compound" for e.g. molecule or lattice embedding or "atomic" for atomic embedding
 
-consider_species=every
+#consider_species=all
 #can also be sth like C,H
 
 coord_key=pca_coord
 
 title=TEST 
 # title for the plot
+
+soap_cutoff_radius=1.0
+# the cutoff_radius you used in the construction of the SOAP-vector
+# this is only important if you are in mode=atomic and you want the
+# realistic size of your atomic environment to be shown, if you 
+# do not need this feature, just set it to 2.5 and you'll get a nice marker anyways.

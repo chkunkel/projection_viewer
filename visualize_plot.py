@@ -1,6 +1,5 @@
-import os
-import shutil
-import configparser
+import os, json, shutil, configparser
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -13,6 +12,11 @@ import ase.io
 
 import helpers
 
+import dash_bio as dashbio
+
+import dash_bio_utils.xyz_reader as xyz_reader
+
+from rtools.helpers.converters import ase2xyz
 
 # read config
 config = configparser.ConfigParser()
@@ -22,24 +26,29 @@ mode = config['Basic']['mode']
 coord_key = config['Basic']['coord_key']
 property_visualize = config['Basic']['property_visualize']
 dimensions = config['Basic']['dimensions']
-consider_species = config['Basic']['consider_species']
 title = config['Basic']['title']
+soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
 
 
 # read atoms
 atoms = ase.io.read(extended_xyz_file,':')
+[atoms[i].set_pbc(False) for i in range(len(atoms))]
 
+print(atoms[0].info)
 
 # collect data
-if '[' in consider_species:
-    consider_species = list(consider_species)
-elif consider_species == 'all':
-    consider_species = list(set(ito.chain(*[atoms_i.get_chemical_symbols() for atoms_i in atoms])))
-else:
-    consider_species = str(consider_species)
+#consider_species = config['Basic']['consider_species']
+#if '[' in consider_species:
+#    consider_species = list(consider_species)
+#elif consider_species == 'all':
+#    consider_species = list(set(ito.chain(*[atoms_i.get_chemical_symbols() for atoms_i in atoms])))
+#else:
+#    consider_species = str(consider_species)
+
+
 
 if mode =='atomic':
-    feature = helpers.get_features_atomic(property_visualize, atoms, consider_species = consider_species)
+    feature = helpers.get_features_atomic(property_visualize, atoms)
     p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
     mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
     # p_xyzs = [item for sublist in p_xzys for item in sublist]
@@ -47,49 +56,63 @@ if mode =='atomic':
     atomic_numbers = list(np.array(atomic_numbers).flatten())
     # atomic_numbers = helpers.get_features_atomic('numbers', atoms, consider_species)
     embedding_coordinates = np.asarray(helpers.get_features_atomic(coord_key, atoms, consider_species))
+    c_first_marker = atoms[0][0].positions
+    print(c_first_marker)
+    shapes = [{'type': 'Sphere', "color": "green", 
+              "center":{'x': c_first_marker[0],'y': c_first_marker[1],'z': c_first_marker[2]}, 
+              "radius":soap_cutoff_radius}]
+
 elif mode in ['compound', 'generic']:
     feature = helpers.get_features_molecular(property_visualize, atoms)
+#    print(feature)
     p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
     mols = [mol for mol in atoms]
     atomic_numbers = [-1]*len(feature)
     embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
+#    print(embedding_coordinates)
+    shapes=[]
+
+shapes+=helpers.get_periodic_box_shape_dict(atoms[0])
 
 
-# write molecules
-# print('Writing molecules')
-# if os.path.isdir('data_plot'):
-#     shutil.rmtree('data_plot')
-# os.mkdir('data_plot')
-# for p_xyz_i, mol_i in zip(p_xyzs, mols):
-#     ase.io.write(os.path.join('data_plot', p_xyz_i), mol_i)
-
-
-# prepare visualization
-print("Layouting the final plot")
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+default_style = helpers.return_style(atoms[0], default=0)
+
+app = dash.Dash(__name__) #, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div(children=[
     html.H1(children=title),
 
     html.Div([
-        html.Label(["x-axis",
+        html.Span(["x-axis",
             dcc.Dropdown(
                 id='x-axis',
                 options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
                 value=0)]),
-        html.Label(["y-axis",
+        html.Span(["y-axis",
             dcc.Dropdown(
                 id='y-axis',
                 options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
                 value=1)]),
-    ], style={'width': '20%', 'display': 'inline-block'}),
+        html.Label(["marker-size",
+            dcc.Dropdown(
+                id='marker-size',
+                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
+                value=1)]),
+        html.Label(["marker-color",
+            dcc.Dropdown(
+                id='marker-color',
+                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
+                value=1)]),
+    ], className="two-thirds column"),
+
 
     html.Div([
         dcc.Graph(
             id='graph',
+            hoverData={},
             figure={
                 'data': [
                     {'x': embedding_coordinates[:, 0].tolist(),
@@ -104,7 +127,22 @@ app.layout = html.Div(children=[
             }
         )
         ], style={'width': '75%'}),
+
+     
+     html.Div([
+        dashbio.Molecule3dViewer(
+        id='3d-viewer',
+        styles = default_style, 
+        shapes = shapes,
+        modelData = json.loads(helpers.ase2json(atoms[0]))),
+        "Compound-view",
+        html.Hr(),
+        html.Div(id='molecule3d-output')
+        ])
+
 ])
+
+
 
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
@@ -123,198 +161,49 @@ def update_graph(x_axis, y_axis):
                  )
             }
 
-app.run_server(debug=True)
+# Hover over plot -> callback to update structure
+@app.callback(
+    dash.dependencies.Output('3d-viewer', 'modelData'),
+    [dash.dependencies.Input('graph', 'hoverData')]
+    )
+def show_atoms(callback_hoverdict):
+    print(callback_hoverdict)
+    atom_id = callback_hoverdict["points"][0]["pointNumber"]
+    return json.loads(helpers.ase2json(atoms[atom_id]))
+#    return xyz_reader.read_xyz(ase2xyz(atoms[atom_id]),is_datafile=False)
 
-# bokeh.io.output_file('index.html')
-# hover = HoverTool(tooltips=tooltips.tooltips[mode])
-# TOOLS = "crosshair,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select,poly_select,lasso_select,"
-#
-# p = figure(
-#         title = title,
-#         x_axis_label = 'Dimension 1',
-#         y_axis_label = 'Dimension 2',
-#         plot_width = 900,
-#         plot_height = 700,
-#         tools = [TOOLS, hover],
-#         )
-# p.background_fill_color = 'beige'
-# color_mapper = LinearColorMapper(palette='Viridis256', low=min(feature), high=max(feature))
-#
-# source = ColumnDataSource({
-#     'index'      :  range(len(feature)),
-#     'x1'         :  embedding_coordinates[:, args.x_axis].tolist(),
-#     'x2'         :  embedding_coordinates[:, args.y_axis].tolist(),
-#     'feature'    :  feature,
-#     'p_xyzs'     :  p_xyzs,
-#     'atomic_num' :  atomic_numbers,
-#     })
-#
-# r_circles = p.scatter(
-#         'x1',
-#         'x2',
-#         size = 4,
-#         alpha = 0.3,
-#         source = source,
-#         level = 'overlay',
-#         line_width = 4.5,
-#         color = {'field': 'feature', 'transform': color_mapper},
-#         )
-#
-# color_bar = ColorBar(
-#         color_mapper = color_mapper,
-#         label_standoff = 12,
-#         border_line_color = None,
-#         location = (0,0)
-#         )
-# p.add_layout(color_bar, 'right')
-#
-# code = """
-# display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])
-# """[1:-1]
-# callback_tap = CustomJS(
-#         args = {"source":source},
-#         code = code,
-#         )
-# taptool = p.select(type=TapTool)
-# taptool.callback = callback_tap
-#
-# code="""
-# const indices = cb_data.index.indices;
-# display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
-# //title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
-# """[1:-1]
-# callback_hover = CustomJS(
-#         args = {'title': p.title, "source":source},
-#         code = code,
-#         )
-# p.hover.callback = callback_hover
-#
-# save(p)
-#
-#
-# # Add 3dmol.js
-# newfile = ''
-# err = False
-#
-#
-# with open("index.html") as out:
-#     for line in out.readlines():
-#
-#         if "3Dmol.csb" in line:
-#             err = True
-#             break
-#
-#         if "</head>" in line:
-#             continue
-#         if "<body>" in line:
-#             newfile += """
-#                                <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
-#
-#           <style>
-# .mol-container {
-#   width: 500px;
-#   height: 500px;
-#   position: relative;
-#   border: 1px solid #999;
-# }
-#
-# .align-center {
-#   width: 600px;
-#   margin: 20px auto 10px;
-#   text-align: center;
-# }
-# </style>
-#
-#
-#   </head>
-#
-#
-#   <body>
-#
-#
-#
-#       <script>
-#       // Display a molecule/crystal using 3dmol.js and an http request
-#   function display_xyz(mol_xyz, atomhighlight=-1)
-#     {
-#   jQuery(function() {
-#   let element = $('#container-02');
-#   let config = { defaultcolors: $3Dmol.rasmolElementColors, backgroundColor: 'white' };
-#   let viewer = $3Dmol.createViewer( element, config );
-#   let pdbUri = 'http://localhost:8000/data_plot/'+mol_xyz;
-#     //let pdbUri = "https://3dmol.csb.pitt.edu/doc-data/1ycr.pdb";
-#     jQuery.ajax( pdbUri, {
-#       success: function(data) {
-#         let v = viewer;
-#         v.addModel( data, "xyz" );                       /* load data */
-#         v.setStyle({sphere:{radius:0.5}, stick: {}});  /* style all atoms */
-#         if (atomhighlight>-1)
-#         {
-#             // v.getModel(0).selectedAtoms({atomhighlight})
-#             var lines = data.split("\\n");
-#             for (var i=0; i<lines.length; i++)
-#             {
-#                if (i == atomhighlight+2)
-#                {
-#                    coord = lines[i].split(" ");
-#                    var x=parseFloat(coord[1]);
-#                    var y=parseFloat(coord[2]);
-#                    var z=parseFloat(coord[3]);
-#                    document.getElementById("container-03").innerHTML = atomhighlight+" "+coord[0]+" "+coord[1]+" " +coord[2]+" "+coord[3];
-#
-#                }
-#             }
-#             //atoms=v.getModel(0).selectedAtoms([atomhighlight])
-#             v.addSphere( { center: {x:x, y:y, z:z}, radius:1.4, color:'green', wireframe: true } );
-#         }
-#         v.zoomTo();                                      /* set camera */
-#         v.render();                                      /* render scene */
-#         //v.zoom(1.2, 1000);                               /* slight zoom */
-#       },
-#       error: function(hdr, status, err) {
-#         console.error( "Failed to load PDB " + pdbUri + ": " + err );
-#       },
-#   })
-# })
-#
-#     }
-#
-# display_xyz('"""+p_xyzs[0]+"""');
-#
-# </script>
-#
-#
-#  <table style="width:100%">
-#   <tr align="left">
-#     <td valign="top"> <div>
-#             3D-Model:<br>
-#             <div id="container-02" class="mol-container"></div>
-#            </div>
-#            <div id="container-03"></div>
-#            </div>
-#
-#     </td>
-#     <th>
-#
-#
-#             """; continue
-#
-#         if "<\body>" in line:
-#             newfile += """
-#             </td></tr></table>
-#             </body>
-#             """
-#             continue
-#
-#         newfile += line
-#
-# if not err:
-#     with open("index.html","w") as out:
-#         out.write(newfile)
-# else:
-#     print(err)
 
-# print("")
-# print("Finished generating plot, please follow these steps now (in the directory of this script):")
-# print("1) Start a webserver using 'python -m SimpleHTTPServer' for python2 or 'python -m http.server' for python3")
-# print("2) Open http://localhost:8000/ in your webbrowser")
+# Hover over plot -> callback to update style (visualization) of atoms in structure
+@app.callback(
+    dash.dependencies.Output('3d-viewer', 'styles'),
+    [dash.dependencies.Input('graph', 'hoverData')]
+    )
+def return_style_callback(callback_hoverdict, default=-1):
+
+    if default==-1: atoms_id = atoms[callback_hoverdict["points"][0]["pointNumber"]]
+    else: atoms_id = atoms[default]
+
+    return helpers.return_style(atoms_id, default=-1)
+
+
+# Hover over plot -> callback to update shapes (box, marker) of atomic env in structure
+@app.callback(
+    dash.dependencies.Output('3d-viewer', 'shapes'),
+    [dash.dependencies.Input('graph', 'hoverData')]
+    )
+def return_shape_callback(callback_hoverdict, default=-1):
+
+    if default==-1: atoms_id = atoms[callback_hoverdict["points"][0]["pointNumber"]]
+    else: atoms_id = atoms[default]
+
+    shapes=[]
+    if mode=="atomic": shapes = [{'type': 'Sphere', "color": "green", 
+                                  "center":{'x': 0,'y': 0,'z': -2.5}, 
+                                  "radius":soap_cutoff_radius}]
+    shapes=helpers.get_periodic_box_shape_dict(atoms_id)
+    return shapes
+
+
+
+app.run_server(debug=False, port=9999)
+
