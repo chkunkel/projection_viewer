@@ -24,40 +24,35 @@ config.read('config.txt')
 extended_xyz_file =   config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
 coord_key = config['Basic']['coord_key']
-property_visualize = config['Basic']['property_visualize']
+##property_visualize = config['Basic']['property_visualize']
 dimensions = config['Basic']['dimensions']
 title = config['Basic']['title']
 soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
 
 
 # read atoms
-atoms = ase.io.read(extended_xyz_file,':')
+atoms = ase.io.read(extended_xyz_file,':')[0:10]
 [atoms[i].set_pbc(False) for i in range(len(atoms))]
-
-print(atoms[0].info)
-
-# collect data
-#consider_species = config['Basic']['consider_species']
-#if '[' in consider_species:
-#    consider_species = list(consider_species)
-#elif consider_species == 'all':
-#    consider_species = list(set(ito.chain(*[atoms_i.get_chemical_symbols() for atoms_i in atoms])))
-#else:
-#    consider_species = str(consider_species)
 
 
 
 if mode =='atomic':
-    feature = helpers.get_features_atomic(property_visualize, atoms)
-    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
-    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
+    
+#    feature = helpers.get_features_atomic(property_visualize, atoms)
+#    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
+#    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
     # p_xyzs = [item for sublist in p_xzys for item in sublist]
-    atomic_numbers = [range(len(mol)) for mol in atoms]
+    atomic_numbers = [[i for i,y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
+
     atomic_numbers = list(np.array(atomic_numbers).flatten())
+    print('Here')
+    print(atomic_numbers)
     # atomic_numbers = helpers.get_features_atomic('numbers', atoms, consider_species)
-    embedding_coordinates = np.asarray(helpers.get_features_atomic(coord_key, atoms, consider_species))
-    c_first_marker = atoms[0][0].positions
-    print(c_first_marker)
+    system_ids =[]
+    for i,mol in enumerate(atoms):
+        system_ids+=[i]*len(mol)
+    embedding_coordinates = np.asarray(helpers.get_features_atomic(coord_key, atoms))
+    c_first_marker = atoms[0].get_positions()[0]
     shapes = [{'type': 'Sphere', "color": "green", 
               "center":{'x': c_first_marker[0],'y': c_first_marker[1],'z': c_first_marker[2]}, 
               "radius":soap_cutoff_radius}]
@@ -71,6 +66,7 @@ elif mode in ['compound', 'generic']:
     embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
 #    print(embedding_coordinates)
     shapes=[]
+
 
 shapes+=helpers.get_periodic_box_shape_dict(atoms[0])
 
@@ -168,8 +164,9 @@ def update_graph(x_axis, y_axis):
     )
 def show_atoms(callback_hoverdict):
     print(callback_hoverdict)
-    atom_id = callback_hoverdict["points"][0]["pointNumber"]
-    return json.loads(helpers.ase2json(atoms[atom_id]))
+    atoms_id = callback_hoverdict["points"][0]["pointNumber"]
+    if mode=="atomic": atoms_id = system_ids[atoms_id]
+    return json.loads(helpers.ase2json(atoms[atoms_id]))
 #    return xyz_reader.read_xyz(ase2xyz(atoms[atom_id]),is_datafile=False)
 
 
@@ -179,8 +176,10 @@ def show_atoms(callback_hoverdict):
     [dash.dependencies.Input('graph', 'hoverData')]
     )
 def return_style_callback(callback_hoverdict, default=-1):
-
-    if default==-1: atoms_id = atoms[callback_hoverdict["points"][0]["pointNumber"]]
+  
+    atoms_id = callback_hoverdict["points"][0]["pointNumber"]
+    if mode=="atomic": atoms_id = system_ids[atoms_id]
+    if default==-1: atoms_id = atoms[atoms_id]
     else: atoms_id = atoms[default]
 
     return helpers.return_style(atoms_id, default=-1)
@@ -192,15 +191,19 @@ def return_style_callback(callback_hoverdict, default=-1):
     [dash.dependencies.Input('graph', 'hoverData')]
     )
 def return_shape_callback(callback_hoverdict, default=-1):
-
-    if default==-1: atoms_id = atoms[callback_hoverdict["points"][0]["pointNumber"]]
+    print(callback_hoverdict)
+    atoms_id = callback_hoverdict["points"][0]["pointNumber"]
+    callback_id = callback_hoverdict["points"][0]["pointNumber"]
+    if mode=="atomic": atoms_id = system_ids[atoms_id]
+    if default==-1: atoms_id = atoms[atoms_id]
     else: atoms_id = atoms[default]
 
     shapes=[]
+    pos = atoms_id.get_positions()[atomic_numbers[callback_id]]
     if mode=="atomic": shapes = [{'type': 'Sphere', "color": "green", 
-                                  "center":{'x': 0,'y': 0,'z': -2.5}, 
+                                  "center":{'x': pos[0],'y': pos[1],'z': pos[2]}, 
                                   "radius":soap_cutoff_radius}]
-    shapes=helpers.get_periodic_box_shape_dict(atoms_id)
+    shapes+=helpers.get_periodic_box_shape_dict(atoms_id)
     return shapes
 
 

@@ -6,7 +6,7 @@ dimensions=2
 extended_xyz_file=test.xyz
 # path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
 
-property_visualize=TotEnergy 
+# property_visualize=TotEnergy 
 # this property will be used for coloring. For atomic embedding give column number in xyze file
 
 mode=atomic
@@ -20,7 +20,7 @@ coord_key=pca_coord
 title=TEST 
 # title for the plot
 
-soap_cutoff_radius=1.0
+soap_cutoff_radius=1.5
 # the cutoff_radius you used in the construction of the SOAP-vector
 # this is only important if you are in mode=atomic and you want the
 # realistic size of your atomic environment to be shown, if you 
