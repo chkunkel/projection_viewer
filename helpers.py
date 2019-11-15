@@ -103,6 +103,39 @@ def get_periodic_box_shape_dict(atoms_ase):
 
 
 
+
+
+'''
+This is taken from rtools.helpers.converters
+Courtesy of Simon Rittmeyer and Christoph Schober
+We didn't want to steal it, but wanted to avoid a further dependency
+'''
+
+try:
+        import StringIO as io
+except ImportError:
+        import io
+
+def ase2xyz(atoms):
+    """
+    Prepare a XYZ string from an ASE atoms object.
+    """
+    # Implementation detail: If PBC should be implemented, the
+    # write to xyz needs to be changed to include cell etc.
+    if any(atoms.get_pbc()):
+        raise RuntimeError("Detected PBCs. Not supported (yet)!")
+    num_atoms = len(atoms)
+    types = atoms.get_chemical_symbols()
+    all_atoms = zip(types, atoms.get_positions())
+    a_str = str(num_atoms) + "\n" + "\n"
+    for atom in all_atoms:
+        a_str += atom[0] + " " + " ".join([str(x) for x in atom[1]]) + "\n"
+    return a_str
+
+
+
+
+
 # rm 
 #import json
 #import six.moves.urllib.request as urlreq
