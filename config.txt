@@ -3,12 +3,13 @@
 extended_xyz_file=test.xyz
 # path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
 
+height_graph=530
+# adjust this if your screen is too large or small
+
 mode=compound
 # can be "compound" for e.g. molecule or lattice embedding or "atomic" for atomic embedding
 
-coord_key=pca_coord
-
-title=Title-example 
+title=Water-MD example 
 # title for the plot
 
 soap_cutoff_radius=1.5

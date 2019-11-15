@@ -17,6 +17,12 @@ Input is read from extended xyz files, written e.g. by ASE or ASAP
 2) To visualize the results:
    - Find the created webpage in your browser at: http://localhost:9999/
 
+## Screenshot of the viewer in action
+
+Visualization of MD-Snapshots (Water) using SOAP and PCA (performed in ASAP). Provided by @BingqingCheng
+
+![alt text](example.png "Screenshot")
+
  
 Authors: Christian Kunkel (christian.kunkel@tum.de), Simon Wengert (s.wengert@tum.de)
 Licence so far: BY-SA

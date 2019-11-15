@@ -25,10 +25,9 @@ config = configparser.ConfigParser()
 config.read('config.txt')
 extended_xyz_file =   config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
-coord_key = config['Basic']['coord_key']
 title = config['Basic']['title']
 soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
-height_graph=530
+height_graph = int(config['Basic']['height_graph'])
 
 # read atoms
 atoms = ase.io.read(extended_xyz_file,':')
