@@ -13,7 +13,8 @@ import ase.io
 
 import helpers
 
-import dash_bio as dashbio
+import dash_bio
+from importlib import reload
 
 import dash_bio_utils.xyz_reader as xyz_reader
 
@@ -25,11 +26,9 @@ config.read('config.txt')
 extended_xyz_file =   config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
 coord_key = config['Basic']['coord_key']
-##property_visualize = config['Basic']['property_visualize']
-##dimensions = config['Basic']['dimensions']
 title = config['Basic']['title']
 soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
-
+height_graph=530
 
 # read atoms
 atoms = ase.io.read(extended_xyz_file,':')
@@ -53,16 +52,10 @@ def build_dataframe_features_molecular_mode(atoms):
     return dataframe
 
 
-
+# Setup of the dataframes and atom/molecular infos for the 3D-Viewer
 if mode =='atomic':
-    
-#    feature = helpers.get_features_atomic(property_visualize, atoms)
-#    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
-#    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
-    # p_xyzs = [item for sublist in p_xzys for item in sublist]
     atomic_numbers = [[i for i,y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
     atomic_numbers = list(np.array(atomic_numbers).flatten())
-    # atomic_numbers = helpers.get_features_atomic('numbers', atoms, consider_species)
     system_ids =[]
     for i,mol in enumerate(atoms):
         system_ids+=[i]*len(mol)
@@ -71,63 +64,52 @@ if mode =='atomic':
     shapes = [{'type': 'Sphere', "color": "green", 
               "center":{'x': c_first_marker[0],'y': c_first_marker[1],'z': c_first_marker[2]}, 
               "radius":soap_cutoff_radius}]
-
 elif mode in ['compound', 'generic']:
     dataframe=build_dataframe_features_molecular_mode(atoms)
-#    feature = helpers.get_features_molecular(property_visualize, atoms)
-#    print(feature)
-#    p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
-#    mols = [mol for mol in atoms]
-#    atomic_numbers = [-1]*len(feature)
-#    embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
-#    print(embedding_coordinates)
     shapes=[]
 
 # get a periodic box if needed
 shapes+=helpers.get_periodic_box_shape_dict(atoms[0])
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
+# Initial data for the graph and 3D viewer
 default_style = helpers.return_style(atoms[0], default=0)
-
 x_default=dataframe.loc[:, dataframe.columns.tolist()[0]].tolist()
 y_default=dataframe.loc[:, dataframe.columns.tolist()[1]].tolist()
 size_default=dataframe.loc[:, dataframe.columns.tolist()[2]].tolist()
 size_default=np.array(size_default)
 size_default=list(size_default-min(size_default)) # cant be smaller than 0
+color_default=dataframe.loc[:, dataframe.columns.tolist()[3]].tolist()
+colorbar_title=dataframe.columns.tolist()[3]
+style_dropdown={'height': '35px', 'width': '100%', 'display':'inline-block'}
 
-app = dash.Dash(__name__) #, external_stylesheets=external_stylesheets)
+# Setup of app
+app = dash.Dash(__name__)
 
 app.layout = html.Div(children=[
-    html.H1(children=title),
+    html.Div(children=title, className='what-is'),
 
     html.Div([
-        html.Span(["x-axis",
+        html.Span(["x-axis", html.Br(),
             dcc.Dropdown(
                 id='x-axis',
-                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
-                value=0)]),
-        html.Span(["y-axis",
+                options=[{'label': '{}'.format(l), 'value': i} for i,l in enumerate(dataframe.columns)],
+                value=0, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}), 
+        html.Span(['y-axis',
             dcc.Dropdown(
                 id='y-axis',
-                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
-                value=1)]),
-        html.Label(["marker_size",
+                options=[{'label': '{}'.format(l), 'value': i} for i,l in enumerate(dataframe.columns)],
+                value=1, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}),
+        html.Span(["marker-size",
             dcc.Dropdown(
                 id='marker_size',
-                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
-                value=2)]),
-        html.Label(["marker-color",
+                options=[{'label': '{}'.format(l), 'value': i} for i,l in enumerate(dataframe.columns)],
+                value=2, style=style_dropdown)],  className='app__dropdown', style={'width': '25%', 'display':'inline-block'}),
+        html.Span(["marker-color",
             dcc.Dropdown(
-                id='marker-color',
-                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
-                value=3)]),
-        html.Label(["border-color",
-            dcc.Dropdown(
-                id='border-color',
-                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
-                value=4)]),
-    ], className="two-thirds column"),
+                id='marker_color',
+                options=[{'label': '{}'.format(l), 'value': i} for i,l in enumerate(dataframe.columns)],
+                value=3, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}),
+    ], className="app__dropdown"),
 
 
     html.Div([
@@ -138,38 +120,41 @@ app.layout = html.Div(children=[
                 'data': [
                     {'x': x_default,
                      'y': y_default,
-                     'mode': 'markers',
+                    'mode': 'markers',
                      'marker': {
-                        'color': 'rgba(0, 116, 217, 0.7)',
+                        'color': color_default,
+                        'colorscale':"Viridis",
+                        'colorbar':{'title' : colorbar_title},
                         'size': size_default,
                         'line': {
-                            'color': 'rgb(0, 116, 217)',
+                            'color': 'rgb(0, 116, 217)', #todo: implement border color option
                             'width': 0.5
                         },},
 
                      'name': 'TODO'},
                 ],
                 'layout': {
-                    'title': 'Data Visualization',
-                     'height': 600,
+                     'xaxis': { 'zeroline': False },
+                     'yaxis': { 'zeroline': False },
+                    #'title': 'Data Visualization',
+                     'height': height_graph,
                 }
             }
         )
-        ], style={'width': '75%'}),
+        ], style={'width': '63%', 'display': 'inline-block'}),
 
      
-     html.Div([
-        dashbio.Molecule3dViewer(
-        id='3d-viewer',
-        styles = default_style, 
-        shapes = shapes,
-        modelData = json.loads(helpers.ase2json(atoms[0]))),
-        "Compound-view",
-        html.Hr(),
-        html.Div(id='molecule3d-output')
-        ])
-
-])
+     html.Div([dcc.Loading(html.Div([
+        dash_bio.Molecule3dViewer(
+            id='3d-viewer',
+            styles = default_style, 
+            shapes = shapes,
+            modelData = json.loads(helpers.ase2json(atoms[0]))),
+            html.Div(id='molecule3d-output')
+            ], 
+         id='div-3dviewer'))], className='container bg-white p-0' ,style={'vertical-align':'center', 'width': '35.5%', 'display': 
+                                                                          'inline-block', 'border-style':'solid', 'height':height_graph})], 
+       className='app-body')
 
 
 
@@ -177,20 +162,24 @@ app.layout = html.Div(children=[
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('x-axis', 'value'),
      dash.dependencies.Input('y-axis', 'value'),
-     dash.dependencies.Input('marker_size', 'value')])
-def update_graph(x_axis, y_axis, marker_size):
+     dash.dependencies.Input('marker_size', 'value'),
+     dash.dependencies.Input('marker_color', 'value')])
+def update_graph(x_axis, y_axis, marker_size, marker_color):
 
-    size_new=dataframe.loc[:, marker_size].tolist()
+    size_new=dataframe.loc[:, dataframe.columns.tolist()[marker_size]].tolist()
     size_new=np.array(size_new)
     size_new=list(size_new-min(size_new)) # cant be smaller than 0
+    color_new = dataframe.loc[:, dataframe.columns.tolist()[marker_color]].tolist()
 
     return {'data': [go.Scatter(
                   x = dataframe.loc[:, dataframe.columns.tolist()[x_axis]].tolist(),
                   y = dataframe.loc[:, dataframe.columns.tolist()[y_axis]].tolist(),
                   mode = 'markers',
                   marker= {
-                        'color': 'rgba(0, 116, 217, 0.7)',
+                        'color': color_new,
+                        'colorscale':'Viridis',
                         'size': size_new,
+                        'colorbar':{'title' : dataframe.columns.tolist()[marker_color]},
                         'line': {
                             'color': 'rgb(0, 116, 217)',
                             'width': 0.5
@@ -198,29 +187,32 @@ def update_graph(x_axis, y_axis, marker_size):
 
                   name = 'TODO',
                     )],
-            'layout': go.Layout(
-                 title = 'Data Visualization'
+            'layout': go.Layout( height=height_graph,
+           #         title = 'Data Visualization'
+                     xaxis = { 'zeroline': False , 'showgrid': False, 'ticks':'outside',
+                               'showline': True, 'mirror':True, 'title':dataframe.columns.tolist()[x_axis] },
+                     yaxis = { 'zeroline': False , 'showgrid': False, 'ticks':'outside', 
+                               'showline': True, 'mirror':True,'title':dataframe.columns.tolist()[y_axis] }
                  )
             }
 
 # Hover over plot -> callback to update structure
-@app.callback(
-    dash.dependencies.Output('3d-viewer', 'modelData'),
-    [dash.dependencies.Input('graph', 'hoverData')]
-    )
+#@app.callback(
+#    dash.dependencies.Output('3d-viewer', 'modelData'),
+#    [dash.dependencies.Input('graph', 'hoverData')]
+#    )
 def show_atoms(callback_hoverdict):
     print(callback_hoverdict)
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
     if mode=="atomic": atoms_id = system_ids[atoms_id]
     return json.loads(helpers.ase2json(atoms[atoms_id]))
-#    return xyz_reader.read_xyz(ase2xyz(atoms[atom_id]),is_datafile=False)
 
 
 # Hover over plot -> callback to update style (visualization) of atoms in structure
-@app.callback(
-    dash.dependencies.Output('3d-viewer', 'styles'),
-    [dash.dependencies.Input('graph', 'hoverData')]
-    )
+#@app.callback(
+#    dash.dependencies.Output('3d-viewer', 'styles'),
+#    [dash.dependencies.Input('graph', 'hoverData')]
+#    )
 def return_style_callback(callback_hoverdict, default=-1):
   
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
@@ -232,12 +224,11 @@ def return_style_callback(callback_hoverdict, default=-1):
 
 
 # Hover over plot -> callback to update shapes (box, marker) of atomic env in structure
-@app.callback(
-    dash.dependencies.Output('3d-viewer', 'shapes'),
-    [dash.dependencies.Input('graph', 'hoverData')]
-    )
+#@app.callback(
+#    dash.dependencies.Output('3d-viewer', 'shapes'),
+#    [dash.dependencies.Input('graph', 'hoverData')]
+#    )
 def return_shape_callback(callback_hoverdict, default=-1):
-    print(callback_hoverdict)
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
     callback_id = callback_hoverdict["points"][0]["pointNumber"]
     if mode=="atomic": atoms_id = system_ids[atoms_id]
@@ -254,6 +245,21 @@ def return_shape_callback(callback_hoverdict, default=-1):
     return shapes
 
 
+@app.callback(
+    dash.dependencies.Output('div-3dviewer', 'children'),
+    [dash.dependencies.Input('graph', 'hoverData')])
+def update_3dviewer(callback_hoverdict, default=-1):
+
+    shapes = return_shape_callback(callback_hoverdict, default=-1)
+    styles = return_style_callback(callback_hoverdict, default=-1)
+    modelData = show_atoms(callback_hoverdict)
+    
+
+    view = dash_bio.Molecule3dViewer(
+        styles = styles,
+        shapes = shapes,
+        modelData = modelData)
+    return view
 
 app.run_server(debug=False, port=9999)
 
