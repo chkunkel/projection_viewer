@@ -1,15 +1,12 @@
 [Basic]
 
-dimensions=2 
+#dimensions=2 
 # embedding dimensions to visualize
 
 extended_xyz_file=test.xyz
 # path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
 
-# property_visualize=TotEnergy 
-# this property will be used for coloring. For atomic embedding give column number in xyze file
-
-mode=atomic
+mode=compound
 # can be "compound" for e.g. molecule or lattice embedding or "atomic" for atomic embedding
 
 #consider_species=all

@@ -7,6 +7,7 @@ import plotly.graph_objs as go
 
 import itertools as ito
 import numpy as np
+import pandas as pd
 
 import ase.io
 
@@ -25,14 +26,31 @@ extended_xyz_file =   config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
 coord_key = config['Basic']['coord_key']
 ##property_visualize = config['Basic']['property_visualize']
-dimensions = config['Basic']['dimensions']
+##dimensions = config['Basic']['dimensions']
 title = config['Basic']['title']
 soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
 
 
 # read atoms
-atoms = ase.io.read(extended_xyz_file,':')[0:10]
+atoms = ase.io.read(extended_xyz_file,':')
 [atoms[i].set_pbc(False) for i in range(len(atoms))]
+
+
+
+def build_dataframe_features_molecular_mode(atoms):
+    keys = atoms[0].info.keys()
+    keys_expanded={}
+    for k in keys:
+        if isinstance(atoms[0].info[k], np.ndarray):
+            print(atoms[0].info[k])
+            for i in range(len(atoms[0].info[k])):
+                print(k+'_'+str(i))
+                keys_expanded[k+'_'+str(i)]=[x.info[k][i] for x in atoms]
+        else:
+            keys_expanded[k]=[x.info[k] for x in atoms]
+
+    dataframe=pd.DataFrame(data=keys_expanded) 
+    return dataframe
 
 
 
@@ -43,10 +61,7 @@ if mode =='atomic':
 #    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
     # p_xyzs = [item for sublist in p_xzys for item in sublist]
     atomic_numbers = [[i for i,y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
-
     atomic_numbers = list(np.array(atomic_numbers).flatten())
-    print('Here')
-    print(atomic_numbers)
     # atomic_numbers = helpers.get_features_atomic('numbers', atoms, consider_species)
     system_ids =[]
     for i,mol in enumerate(atoms):
@@ -58,23 +73,28 @@ if mode =='atomic':
               "radius":soap_cutoff_radius}]
 
 elif mode in ['compound', 'generic']:
-    feature = helpers.get_features_molecular(property_visualize, atoms)
+    dataframe=build_dataframe_features_molecular_mode(atoms)
+#    feature = helpers.get_features_molecular(property_visualize, atoms)
 #    print(feature)
-    p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
-    mols = [mol for mol in atoms]
-    atomic_numbers = [-1]*len(feature)
-    embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
+#    p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
+#    mols = [mol for mol in atoms]
+#    atomic_numbers = [-1]*len(feature)
+#    embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
 #    print(embedding_coordinates)
     shapes=[]
 
-
+# get a periodic box if needed
 shapes+=helpers.get_periodic_box_shape_dict(atoms[0])
-
-
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 default_style = helpers.return_style(atoms[0], default=0)
+
+x_default=dataframe.loc[:, dataframe.columns.tolist()[0]].tolist()
+y_default=dataframe.loc[:, dataframe.columns.tolist()[1]].tolist()
+size_default=dataframe.loc[:, dataframe.columns.tolist()[2]].tolist()
+size_default=np.array(size_default)
+size_default=list(size_default-min(size_default)) # cant be smaller than 0
 
 app = dash.Dash(__name__) #, external_stylesheets=external_stylesheets)
 
@@ -85,23 +105,28 @@ app.layout = html.Div(children=[
         html.Span(["x-axis",
             dcc.Dropdown(
                 id='x-axis',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
+                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
                 value=0)]),
         html.Span(["y-axis",
             dcc.Dropdown(
                 id='y-axis',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
+                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
                 value=1)]),
-        html.Label(["marker-size",
+        html.Label(["marker_size",
             dcc.Dropdown(
-                id='marker-size',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
-                value=1)]),
+                id='marker_size',
+                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
+                value=2)]),
         html.Label(["marker-color",
             dcc.Dropdown(
                 id='marker-color',
-                options=[{'label': 'Dimension {}'.format(i), 'value': i} for i in range(embedding_coordinates.shape[1])],
-                value=1)]),
+                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
+                value=3)]),
+        html.Label(["border-color",
+            dcc.Dropdown(
+                id='border-color',
+                options=[{'label': '{}'.format(i), 'value': i} for i in dataframe.columns],
+                value=4)]),
     ], className="two-thirds column"),
 
 
@@ -111,9 +136,17 @@ app.layout = html.Div(children=[
             hoverData={},
             figure={
                 'data': [
-                    {'x': embedding_coordinates[:, 0].tolist(),
-                     'y': embedding_coordinates[:, 1].tolist(),
+                    {'x': x_default,
+                     'y': y_default,
                      'mode': 'markers',
+                     'marker': {
+                        'color': 'rgba(0, 116, 217, 0.7)',
+                        'size': size_default,
+                        'line': {
+                            'color': 'rgb(0, 116, 217)',
+                            'width': 0.5
+                        },},
+
                      'name': 'TODO'},
                 ],
                 'layout': {
@@ -143,13 +176,26 @@ app.layout = html.Div(children=[
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('x-axis', 'value'),
-     dash.dependencies.Input('y-axis', 'value')])
-def update_graph(x_axis, y_axis):
+     dash.dependencies.Input('y-axis', 'value'),
+     dash.dependencies.Input('marker_size', 'value')])
+def update_graph(x_axis, y_axis, marker_size):
+
+    size_new=dataframe.loc[:, marker_size].tolist()
+    size_new=np.array(size_new)
+    size_new=list(size_new-min(size_new)) # cant be smaller than 0
 
     return {'data': [go.Scatter(
-                  x = embedding_coordinates[:, x_axis].tolist(),
-                  y = embedding_coordinates[:, y_axis].tolist(),
+                  x = dataframe.loc[:, dataframe.columns.tolist()[x_axis]].tolist(),
+                  y = dataframe.loc[:, dataframe.columns.tolist()[y_axis]].tolist(),
                   mode = 'markers',
+                  marker= {
+                        'color': 'rgba(0, 116, 217, 0.7)',
+                        'size': size_new,
+                        'line': {
+                            'color': 'rgb(0, 116, 217)',
+                            'width': 0.5
+                        }},
+
                   name = 'TODO',
                     )],
             'layout': go.Layout(
@@ -199,8 +245,9 @@ def return_shape_callback(callback_hoverdict, default=-1):
     else: atoms_id = atoms[default]
 
     shapes=[]
-    pos = atoms_id.get_positions()[atomic_numbers[callback_id]]
-    if mode=="atomic": shapes = [{'type': 'Sphere', "color": "green", 
+    if mode=='atomic': 
+        pos = atoms_id.get_positions()[atomic_numbers[callback_id]]
+        shapes = [{'type': 'Sphere', "color": "green", 
                                   "center":{'x': pos[0],'y': pos[1],'z': pos[2]}, 
                                   "radius":soap_cutoff_radius}]
     shapes+=helpers.get_periodic_box_shape_dict(atoms_id)
