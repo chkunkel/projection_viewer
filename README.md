@@ -1,11 +1,10 @@
-Author: Christian Kunkel, Simon Wengert
-
 Visualizer for molecular structures/compounds from dimensionality reduction performed from ASAP.
 Input is read from extended xyz files, written e.g. by ASE or ASAP 
 
 ## Dependencies:
  - Numpy
- - plotly, dash, dash_bio, dash_bio_utils
+ - plotly, dash, dash_bio_utils
+ - dash_bio (IMPORTANT: You need to install a modified version from https://github.com/chkunkel/dash-bio, contact us!)
  - pandas
  - rtools (theochem Munich, https://gitlab.lrz.de/theochem/rtools)
  - ASAP (https://github.com/BingqingCheng/ASAP, Ask BingqingCheng)
@@ -19,4 +18,5 @@ Input is read from extended xyz files, written e.g. by ASE or ASAP
    - Find the created webpage in your browser at: http://localhost:9999/
 
  
+Authors: Christian Kunkel (christian.kunkel@tum.de), Simon Wengert (s.wengert@tum.de)
 Licence so far: BY-SA
