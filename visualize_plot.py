@@ -31,7 +31,7 @@ marker_radius = config['Basic']['marker_radius']
 height_graph = int(config['Basic']['height_graph'])
 
 # read atoms
-atoms = ase.io.read(extended_xyz_file,':')[0:4]
+atoms = ase.io.read(extended_xyz_file,':')
 [atoms[i].set_pbc(False) for i in range(len(atoms))]
 
 
@@ -41,15 +41,15 @@ def build_dataframe_features(atoms, mode='molecular'):
     else: keys = atoms[0].info.keys()
 
     keys_expanded={}
-    
+
     if mode =='atomic':
         atomic_numbers = [[i for i,y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
         atomic_numbers = list(np.array(atomic_numbers).flatten())
         system_ids =[]
         for i,mol in enumerate(atoms):
             system_ids+=[i]*len(mol)
-        keys_expanded['system_ids'] = system_ids 
-        keys_expanded['atomic_numbers'] = atomic_numbers 
+        keys_expanded['system_ids'] = system_ids
+        keys_expanded['atomic_numbers'] = atomic_numbers
 
     for k in keys:
         if mode=='atomic':
@@ -58,7 +58,7 @@ def build_dataframe_features(atoms, mode='molecular'):
                     print(k, i)
                     keys_expanded[k+'_'+str(i)] = np.array([[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
                     print(np.array(keys_expanded[k+'_'+str(i)]).shape)
-            else: 
+            else:
                  keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
                  print(k,len(keys_expanded[k])); continue
 
@@ -69,7 +69,7 @@ def build_dataframe_features(atoms, mode='molecular'):
             else:
                 keys_expanded[k]=[x.info[k] for x in atoms]
 
-    dataframe=pd.DataFrame(data=keys_expanded) 
+    dataframe=pd.DataFrame(data=keys_expanded)
     return dataframe
 
 
@@ -81,7 +81,7 @@ if mode =='atomic':
     c_first_marker = atoms[0].get_positions()[0]
     system_ids = dataframe['system_ids']
     atomic_numbers = dataframe['atomic_numbers']
-    dataframe.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)    
+    dataframe.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
 
 print(dataframe.head())
 
@@ -111,7 +111,7 @@ app.layout = html.Div(children=[
             dcc.Dropdown(
                 id='x-axis',
                 options=[{'label': '{}'.format(l), 'value': i} for i,l in enumerate(dataframe.columns)],
-                value=0, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}), 
+                value=0, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}),
         html.Span(['y-axis',
             dcc.Dropdown(
                 id='y-axis',
@@ -129,6 +129,14 @@ app.layout = html.Div(children=[
                 value=3, style=style_dropdown)], className='app__dropdown', style={'width': '25%', 'display':'inline-block'}),
     ], className="app__dropdown"),
 
+    html.Div([
+        # SPW
+        html.Span(["marker-size-limits",
+            dcc.RangeSlider(
+                id='marker_size_limits',
+                min=1, max=100, step=0.1, value=[5, 50],
+                )], className='app__slider', style={'width': '50%', 'display':'inline-block'}),
+    ], className="app__slider"),
 
     html.Div([
         dcc.Graph(
@@ -161,21 +169,21 @@ app.layout = html.Div(children=[
         )
         ], style={'width': '63%', 'display': 'inline-block'}),
 
-     
+
      html.Div([dcc.Loading(html.Div([
         dash_bio.Molecule3dViewer(
             id='3d-viewer',
-            styles = default_style, 
+            styles = default_style,
             shapes = shapes,
             modelData = json.loads(helpers.ase2json(atoms[0]))),
             html.Div(id='molecule3d-output')
-            ], 
-         id='div-3dviewer'))], className='container bg-white p-0' ,style={'vertical-align':'center', 'width': '35.5%', 'display': 
+            ],
+         id='div-3dviewer'))], className='container bg-white p-0' ,style={'vertical-align':'center', 'width': '35.5%', 'display':
                                                                           'inline-block', 'border-style':'solid', 'height':height_graph}),
        'Remarks:', html.Br(),
        'Gray wireframe: SOAP cutoff radius around selected atom.',html.Br(),
        'Green sphere: Marker for selected atom.'
-       ], 
+       ],
        className='app-body')
 
 
@@ -187,12 +195,18 @@ app.layout = html.Div(children=[
     [dash.dependencies.Input('x-axis', 'value'),
      dash.dependencies.Input('y-axis', 'value'),
      dash.dependencies.Input('marker_size', 'value'),
+     dash.dependencies.Input('marker_size_limits', 'value'),
      dash.dependencies.Input('marker_color', 'value')])
-def update_graph(x_axis, y_axis, marker_size, marker_color):
+def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color):
 
-    size_new=dataframe[dataframe.columns.tolist()[marker_size]].tolist()
-    size_new=np.array(size_new)
-    size_new=list(size_new-min(size_new)) # cant be smaller than 0
+    size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
+    size_new = np.array(size_new)
+    size_new = size_new-min(size_new) # cant be smaller than 0
+    try:
+        size_new = _get_new_sizes(size_new, marker_size_limits)
+    except:
+        print('Error in scaling marker sizes. Using `30` for all data points instead.')
+        size_new = 30
     color_new = dataframe[dataframe.columns.tolist()[marker_color]].tolist()
 
     return {'data': [go.Scatter(
@@ -215,10 +229,18 @@ def update_graph(x_axis, y_axis, marker_size, marker_color):
            #         title = 'Data Visualization'
                      xaxis = { 'zeroline': False , 'showgrid': False, 'ticks':'outside',
                                'showline': True, 'mirror':True, 'title':dataframe.columns.tolist()[x_axis] },
-                     yaxis = { 'zeroline': False , 'showgrid': False, 'ticks':'outside', 
+                     yaxis = { 'zeroline': False , 'showgrid': False, 'ticks':'outside',
                                'showline': True, 'mirror':True,'title':dataframe.columns.tolist()[y_axis] }
                  )
             }
+
+def _get_new_sizes(ref_values, size_range):
+    "Map ``ref_values`` to a range within ``size_range`` in a linear fashion."
+    ref_values = np.asarray(ref_values)
+    ref_min, ref_max = np.min(ref_values), np.max(ref_values)
+    slope = (size_range[1]-size_range[0]) / float(ref_max-ref_min)
+    return size_range[0] + slope*(ref_values-ref_min)
+
 
 def return_modelData_atoms(callback_hoverdict):
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
@@ -227,7 +249,7 @@ def return_modelData_atoms(callback_hoverdict):
 
 
 def return_style_callback(callback_hoverdict, default=-1):
-  
+
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
     if mode=="atomic": atoms_id = system_ids[atoms_id]
     if default==-1: atoms_id = atoms[atoms_id]
@@ -243,15 +265,15 @@ def return_shape_callback(callback_hoverdict, default=-1):
     else: atoms_id = atoms[default]
 
     shapes=[]
-    if mode=='atomic': 
+    if mode=='atomic':
         pos = atoms_id.get_positions()[atomic_numbers[callback_id]]
         print(atoms_id, atomic_numbers[callback_id], pos)
         print(callback_id, atomic_numbers[callback_id])
-        shapes = [{'type': 'Sphere', "color": "gray", 
-                                  "center":{'x': pos[0],'y': pos[1],'z': pos[2]}, 
+        shapes = [{'type': 'Sphere', "color": "gray",
+                                  "center":{'x': pos[0],'y': pos[1],'z': pos[2]},
                                   "radius":soap_cutoff_radius,'wireframe': True},
-                  {'type': 'Sphere', "color": "green", 
-                                  "center":{'x': pos[0],'y': pos[1],'z': pos[2]}, 
+                  {'type': 'Sphere', "color": "green",
+                                  "center":{'x': pos[0],'y': pos[1],'z': pos[2]},
                                   "radius":marker_radius}
                  ]
     shapes+=helpers.get_periodic_box_shape_dict(atoms_id)
@@ -268,7 +290,7 @@ def update_3dviewer(callback_hoverdict, default=-1):
     shapes = return_shape_callback(callback_hoverdict)
     styles = return_style_callback(callback_hoverdict)
     modelData = return_modelData_atoms(callback_hoverdict)
-    
+
     view = dash_bio.Molecule3dViewer(
         styles = styles,
         shapes = shapes,
