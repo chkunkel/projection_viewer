@@ -18,7 +18,6 @@ from importlib import reload
 
 import dash_bio_utils.xyz_reader as xyz_reader
 
-from rtools.helpers.converters import ase2xyz
 
 # read config
 config = configparser.ConfigParser()
