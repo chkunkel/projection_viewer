@@ -129,11 +129,17 @@ app.layout = html.Div(children=[
     ], className="app__dropdown"),
 
     html.Div([
-        # SPW
         html.Span(["marker-size-limits",
             dcc.RangeSlider(
                 id='marker_size_limits',
                 min=1, max=100, step=0.1, value=[5, 50],
+                )], className='app__slider', style={'width': '50%', 'display':'inline-block'}),
+    ], className="app__slider"),
+    html.Div([
+        html.Span(["marker-color-limits",
+            dcc.RangeSlider(
+                id='marker_color_limits',
+                min=0, max=100, step=0.1, value=[0, 100],
                 )], className='app__slider', style={'width': '50%', 'display':'inline-block'}),
     ], className="app__slider"),
 
@@ -195,8 +201,15 @@ app.layout = html.Div(children=[
      dash.dependencies.Input('y-axis', 'value'),
      dash.dependencies.Input('marker_size', 'value'),
      dash.dependencies.Input('marker_size_limits', 'value'),
-     dash.dependencies.Input('marker_color', 'value')])
-def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color):
+     dash.dependencies.Input('marker_color', 'value'),
+     dash.dependencies.Input('marker_color_limits', 'value')])
+def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits):
+
+    color_new = dataframe[dataframe.columns.tolist()[marker_color]]
+    color_span = np.abs(np.max(color_new) - np.min(color_new))
+    color_new_lower = np.min(color_new) + color_span/100.*marker_color_limits[0]
+    color_new_upper = np.min(color_new) + color_span/100.*marker_color_limits[1]
+    indices_in_limits = np.asarray([idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
 
     size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
     size_new = np.array(size_new)
@@ -205,8 +218,14 @@ def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color):
         size_new = _get_new_sizes(size_new, marker_size_limits)
     except:
         print('Error in scaling marker sizes. Using `30` for all data points instead.')
-        size_new = 30
-    color_new = dataframe[dataframe.columns.tolist()[marker_color]].tolist()
+        size_new = np.asarray([30]*len(size_new))
+    size_new_tmp = []
+    for idx, size_i in enumerate(size_new):
+        if idx in indices_in_limits:
+            size_new_tmp.append(size_i)
+        else:
+            size_new_tmp.append(0)
+    size_new = np.asarray(size_new_tmp)
 
     return {'data': [go.Scatter(
                   x = dataframe[dataframe.columns.tolist()[x_axis]].tolist(),
