@@ -133,14 +133,22 @@ app.layout = html.Div(children=[
             dcc.RangeSlider(
                 id='marker_size_limits',
                 min=1, max=100, step=0.1, value=[5, 50],
+                marks={s : s for s in range(0, 101, 10)},
+                allowCross=False,
                 )], className='app__slider', style={'width': '50%', 'display':'inline-block'}),
+        html.Br(),
+        html.Br(),
     ], className="app__slider"),
     html.Div([
         html.Span(["marker-color-limits",
             dcc.RangeSlider(
                 id='marker_color_limits',
                 min=0, max=100, step=0.1, value=[0, 100],
+                marks={p : '{}%'.format(p) for p in range(0, 101, 10)},
+                allowCross=False,
                 )], className='app__slider', style={'width': '50%', 'display':'inline-block'}),
+        html.Br(),
+        html.Br(),
     ], className="app__slider"),
 
     html.Div([
