@@ -2,6 +2,7 @@ import numpy as np
 from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
 
+
 def get_features_molecular(feature, atoms):
     "Returns a list with the molecular feature for all geometries in `atoms`"
     return [atoms_i.info[feature] for atoms_i in atoms]
@@ -11,7 +12,8 @@ def get_features_atomic(feature, atoms):
     "Returns a list with the atomic features for all geometries in `atoms`"
     features = []
     for atoms_i in atoms:
-        features.extend([feature_i for feature_i, symbol_i in zip(atoms_i.arrays[feature], atoms_i.get_chemical_symbols())])
+        features.extend(
+            [feature_i for feature_i, symbol_i in zip(atoms_i.arrays[feature], atoms_i.get_chemical_symbols())])
     return features
 
 
@@ -19,47 +21,45 @@ def get_atomic_numbers(atoms):
     "Returns a list with the atomic numbers for all geometries in `atoms`"
     atomic_numbers = []
     for atoms_i in atoms:
-        atomic_numbers.extend([number for number, symbol in zip(atoms_i.get_atomic_numbers(), atoms_i.get_chemical_symbols())])
+        atomic_numbers.extend(
+            [number for number, symbol in zip(atoms_i.get_atomic_numbers(), atoms_i.get_chemical_symbols())])
     return atomic_numbers
 
 
 def ase2json(atoms_ase):
-    atoms_ase.translate(atoms_ase.get_center_of_mass()*-1)
+    atoms_ase.translate(atoms_ase.get_center_of_mass() * -1)
     json_str = '{"atoms": ['
-    for i,pos in enumerate(atoms_ase.get_positions()):
+    for i, pos in enumerate(atoms_ase.get_positions()):
         elem = str(atoms_ase.get_chemical_symbols()[i])
-        json_str+='{"name":"'+elem+'","chain":"A","residue_index":0,"residue_name":"A", "serial": "'+str(i)+'","element":"'+elem+'", "positions":'+str(list(pos))+'}'
-        if not i==len(atoms_ase)-1:
-            json_str+=","
-    json_str+='], "bonds":[]}'
+        json_str += '{"name":"' + elem + '","chain":"A","residue_index":0,"residue_name":"A", "serial": "' + str(
+            i) + '","element":"' + elem + '", "positions":' + str(list(pos)) + '}'
+        if not i == len(atoms_ase) - 1:
+            json_str += ","
+    json_str += '], "bonds":[]}'
 
     return json_str
-
 
 
 def get_hex_color(c_rgb):
     return '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
 
 
-
 def return_style(atoms_id, default=-1):
-
     dict_style = {}
-    for i,at in enumerate(atoms_id):
-        hex_color = get_hex_color([int(x*255) for x in jmol_colors[atoms_id.get_atomic_numbers()[i]]])
-        #hex_color = '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
-        dict_style[str(i)]={"color":hex_color, "visualization_type": "sphere", 
-                            "radius":covalent_radii[atoms_id.get_atomic_numbers()[i]]}
+    for i, at in enumerate(atoms_id):
+        hex_color = get_hex_color([int(x * 255) for x in jmol_colors[atoms_id.get_atomic_numbers()[i]]])
+        # hex_color = '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
+        dict_style[str(i)] = {"color": hex_color, "visualization_type": "sphere",
+                              "radius": covalent_radii[atoms_id.get_atomic_numbers()[i]]}
     return dict_style
 
 
 # check whether a periodic box is needed to be drawn, and return it as a shape if needed
 def get_periodic_box_shape_dict(atoms_ase):
-    
     # so far we only show a box when it is 3d periodic
-    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3]>0): return []
+    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return []
 
-    point0 = np.array([0.0,0.0,0.0])
+    point0 = np.array([0.0, 0.0, 0.0])
     lattice_vectors = atoms_ase.get_cell()
     point1 = list(point0 + lattice_vectors[0])
     point2 = list(point0 + lattice_vectors[1])
@@ -71,38 +71,46 @@ def get_periodic_box_shape_dict(atoms_ase):
     point0 = list(point0)
 
     shapes = []
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0,0,255]),
-                  "start":{"x": point0[0], "y": point0[1], "z":point0[2] }, "end":{ "x": point1[0] , "y": point1[1], "z": point1[2] } })
-    shapes.append({"type": "Cylinder", "color": get_hex_color([255,0,0]),
-                   "start":{"x": point0[0], "y": point0[1], "z":point0[2] }, "end":{ "x": point2[0] , "y": point2[1], "z": point2[2] } })
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0,255,0]),
-                   "start":{"x": point0[0], "y": point0[1], "z":point0[2] }, "end":{ "x": point3[0] , "y": point3[1], "z": point3[2] } })
+    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
+                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+                   "end": {"x": point1[0], "y": point1[1], "z": point1[2]}})
+    shapes.append({"type": "Cylinder", "color": get_hex_color([255, 0, 0]),
+                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+                   "end": {"x": point2[0], "y": point2[1], "z": point2[2]}})
+    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 255, 0]),
+                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+                   "end": {"x": point3[0], "y": point3[1], "z": point3[2]}})
 
-    black = get_hex_color([255,255,255])
+    black = get_hex_color([255, 255, 255])
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point1[0], "y": point1[1], "z":point1[2] }, "end":{ "x": point5[0] , "y": point5[1], "z": point5[2] } })
+                   "start": {"x": point1[0], "y": point1[1], "z": point1[2]},
+                   "end": {"x": point5[0], "y": point5[1], "z": point5[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point1[0], "y": point1[1], "z":point1[2] }, "end":{ "x": point6[0] , "y": point6[1], "z": point6[2] } })
+                   "start": {"x": point1[0], "y": point1[1], "z": point1[2]},
+                   "end": {"x": point6[0], "y": point6[1], "z": point6[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point2[0], "y": point2[1], "z":point2[2] }, "end":{ "x": point4[0] , "y": point4[1], "z": point4[2] } })
+                   "start": {"x": point2[0], "y": point2[1], "z": point2[2]},
+                   "end": {"x": point4[0], "y": point4[1], "z": point4[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point2[0], "y": point2[1], "z":point2[2] }, "end":{ "x": point5[0] , "y": point5[1], "z": point5[2] } })
+                   "start": {"x": point2[0], "y": point2[1], "z": point2[2]},
+                   "end": {"x": point5[0], "y": point5[1], "z": point5[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point3[0], "y": point3[1], "z":point3[2] }, "end":{ "x": point4[0] , "y": point4[1], "z": point4[2] } })
+                   "start": {"x": point3[0], "y": point3[1], "z": point3[2]},
+                   "end": {"x": point4[0], "y": point4[1], "z": point4[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point3[0], "y": point3[1], "z":point3[2] }, "end":{ "x": point6[0] , "y": point6[1], "z": point6[2] } })
+                   "start": {"x": point3[0], "y": point3[1], "z": point3[2]},
+                   "end": {"x": point6[0], "y": point6[1], "z": point6[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point4[0], "y": point4[1], "z":point4[2] }, "end":{ "x": point7[0] , "y": point7[1], "z": point7[2] } })
+                   "start": {"x": point4[0], "y": point4[1], "z": point4[2]},
+                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point5[0], "y": point5[1], "z":point5[2] }, "end":{ "x": point7[0] , "y": point7[1], "z": point7[2] } })
+                   "start": {"x": point5[0], "y": point5[1], "z": point5[2]},
+                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
     shapes.append({"type": "Cylinder", "color": black,
-                  "start":{"x": point6[0], "y": point6[1], "z":point6[2] }, "end":{ "x": point7[0] , "y": point7[1], "z": point7[2] } })
-
+                   "start": {"x": point6[0], "y": point6[1], "z": point6[2]},
+                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
 
     return shapes
-
-
-
 
 
 '''
@@ -112,9 +120,10 @@ We didn't want to steal it, but wanted to avoid a further dependency
 '''
 
 try:
-        import StringIO as io
+    import StringIO as io
 except ImportError:
-        import io
+    import io
+
 
 def ase2xyz(atoms):
     """
@@ -132,23 +141,19 @@ def ase2xyz(atoms):
         a_str += atom[0] + " " + " ".join([str(x) for x in atom[1]]) + "\n"
     return a_str
 
-
-
-
-
-# rm 
-#import json
-#import six.moves.urllib.request as urlreq
-#from six import PY3
-#model_data = urlreq.urlopen('https://raw.githubusercontent.com/Autodesk/molecule-3d-for-react/master/example/js/bipyridine_model_data.js').read()
-#model_data=str(model_data)
-#model_data = model_data.replace("\\n", """""").split("default")[1].split(";")[0]
-#print(model_data)
-#modelData = json.loads(model_data)
-#modelData.pop("bonds")
+# rm
+# import json
+# import six.moves.urllib.request as urlreq
+# from six import PY3
+# model_data = urlreq.urlopen('https://raw.githubusercontent.com/Autodesk/molecule-3d-for-react/master/example/js/bipyridine_model_data.js').read()
+# model_data=str(model_data)
+# model_data = model_data.replace("\\n", """""").split("default")[1].split(";")[0]
+# print(model_data)
+# modelData = json.loads(model_data)
+# modelData.pop("bonds")
 
 #  'https://raw.githubusercontent.com/plotly/dash-bio-docs-files/master/' +
 #    'mol3d/model_data.js'
 
 
-#{"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
+# {"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
