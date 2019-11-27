@@ -249,7 +249,7 @@ def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, 
                   mode = 'markers',
                   marker= {
                         'color': color_new,
-                        'colorscale': 'Viridis' if colorscale is None else colorscale ,
+                        'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale ,
                         'size': size_new,
                         'colorbar':{'title' : dataframe.columns.tolist()[marker_color]},
                         'line': {
