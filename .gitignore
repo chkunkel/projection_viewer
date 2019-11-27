@@ -1,2 +1,8 @@
 *.pyc
 *.swp
+
+# IPython Notebook
+.ipynb_checkpoints
+
+# Pycharm
+.idea/
