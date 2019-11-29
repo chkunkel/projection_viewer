@@ -133,6 +133,13 @@ app.layout = html.Div(children=[
     ], className="app__dropdown"),
 
     html.Div([
+        html.Span([html.I('colorscale'), html.Br(),
+            dcc.Input(
+                id='colorscale',
+                type='text',
+                placeholder='colorscale')], className='app__dropdown', style={'width': '15%', 'display':'inline-block'}),
+    ], className='app__input', style={'width': '15%', 'display':'inline-block'}),
+    html.Div([
         html.Span(["marker-size-limits",
                    dcc.RangeSlider(
                        id='marker_size_limits',
@@ -214,8 +221,9 @@ app.layout = html.Div(children=[
      dash.dependencies.Input('marker_size', 'value'),
      dash.dependencies.Input('marker_size_limits', 'value'),
      dash.dependencies.Input('marker_color', 'value'),
-     dash.dependencies.Input('marker_color_limits', 'value')])
-def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits):
+     dash.dependencies.Input('marker_color_limits', 'value'),
+     dash.dependencies.Input('colorscale', 'value')])
+def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale):
     color_new = dataframe[dataframe.columns.tolist()[marker_color]]
     color_span = np.abs(np.max(color_new) - np.min(color_new))
     color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
@@ -245,7 +253,7 @@ def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, 
         mode='markers',
         marker={
             'color': color_new,
-            'colorscale': 'Viridis',
+            'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale ,
             'size': size_new,
             'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
             'line': {
