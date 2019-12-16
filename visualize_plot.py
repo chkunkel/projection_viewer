@@ -1,6 +1,9 @@
-import sys
+#!python3
+
+import argparse
 import configparser
 import json
+import sys
 
 import ase.io
 import dash
@@ -14,16 +17,17 @@ import plotly.graph_objs as go
 import helpers
 
 
-def main():
-    # read config
-    config = configparser.ConfigParser()
-    config.read('config.txt')
-    extended_xyz_file = config['Basic']['extended_xyz_file']
-    mode = config['Basic']['mode']
-    title = config['Basic']['title']
-    soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
-    marker_radius = config['Basic']['marker_radius']
-    height_graph = int(config['Basic']['height_graph'])
+def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, marker_radius, height_graph):
+    if config_filename != 'None':
+        # read config if given
+        config = configparser.ConfigParser()
+        config.read(config_filename)
+        extended_xyz_file = config['Basic']['extended_xyz_file']
+        mode = config['Basic']['mode']
+        title = config['Basic']['title']
+        soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
+        marker_radius = config['Basic']['marker_radius']
+        height_graph = int(config['Basic']['height_graph'])
 
     # read atoms
     atoms = ase.io.read(extended_xyz_file, ':')
@@ -334,4 +338,32 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--fxyz', type=str, help='Location of xyz file')
+    parser.add_argument('--config-file', type=str, default='None',
+                        help='Config file that configures and overwrites every other argument')
+    parser.add_argument('--height', type=int, default=530, help='Adjustment of graph height for small or large screens')
+    parser.add_argument('--mode', type=str, default='molecular',
+                        help='Mode of projection ([molecular], [atomic]), "compound" coming soon')
+    parser.add_argument('--title', type=str, default='Example', help='Titile of the plot')
+
+    parser.add_argument('--marker-radius', type=float, default=1.0,
+                        help='Radius of the green sphere, that in atomic mode allows you to identify '
+                             'the current atom in the structure')
+    parser.add_argument('--soap-cutoff', type=float, default=3.0,
+                        help='Cutoff radius for wireframe of SOAP in atomic mode')
+
+    # print help if no args were given
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    args = parser.parse_args()
+
+    sys.exit(main(extended_xyz_file=args.fxyz,
+                  height_graph=args.height,
+                  mode=args.mode,
+                  title=args.title,
+                  config_filename=args.config_file,
+                  marker_radius=args.marker_radius,
+                  soap_cutoff_radius=args.soap_cutoff))
