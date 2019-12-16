@@ -1,22 +1,16 @@
-import os, json, shutil, configparser
-
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
-
-import itertools as ito
-import numpy as np
-import pandas as pd
+import configparser
+import json
 
 import ase.io
+import dash
+import dash_bio
+import dash_core_components as dcc
+import dash_html_components as html
+import numpy as np
+import pandas as pd
+import plotly.graph_objs as go
 
 import helpers
-
-import dash_bio
-from importlib import reload
-
-import dash_bio_utils.xyz_reader as xyz_reader
 
 # read config
 config = configparser.ConfigParser()
@@ -42,13 +36,13 @@ def build_dataframe_features(atoms, mode='molecular'):
     keys_expanded = {}
 
     if mode == 'atomic':
-        atomic_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
-        atomic_numbers = list(np.array(atomic_numbers).flatten())
-        system_ids = []
+        at_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
+        at_numbers = list(np.array(at_numbers).flatten())
+        sys_ids = []
         for i, mol in enumerate(atoms):
-            system_ids += [i] * len(mol)
-        keys_expanded['system_ids'] = system_ids
-        keys_expanded['atomic_numbers'] = atomic_numbers
+            sys_ids += [i] * len(mol)
+        keys_expanded['system_ids'] = sys_ids
+        keys_expanded['atomic_numbers'] = at_numbers
 
     for k in keys:
         if mode == 'atomic':
@@ -60,7 +54,7 @@ def build_dataframe_features(atoms, mode='molecular'):
                     print(np.array(keys_expanded[k + '_' + str(i)]).shape)
             else:
                 keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
-                print(k, len(keys_expanded[k]));
+                print(k, len(keys_expanded[k]))
                 continue
 
         else:
@@ -70,8 +64,8 @@ def build_dataframe_features(atoms, mode='molecular'):
             else:
                 keys_expanded[k] = [x.info[k] for x in atoms]
 
-    dataframe = pd.DataFrame(data=keys_expanded)
-    return dataframe
+    df = pd.DataFrame(data=keys_expanded)
+    return df
 
 
 # Setup of the dataframes and atom/molecular infos for the 3D-Viewer
@@ -134,11 +128,12 @@ app.layout = html.Div(children=[
 
     html.Div([
         html.Span([html.I('colorscale'), html.Br(),
-            dcc.Input(
-                id='colorscale',
-                type='text',
-                placeholder='colorscale')], className='app__dropdown', style={'width': '15%', 'display':'inline-block'}),
-    ], className='app__input', style={'width': '15%', 'display':'inline-block'}),
+                   dcc.Input(
+                       id='colorscale',
+                       type='text',
+                       placeholder='colorscale')], className='app__dropdown',
+                  style={'width': '15%', 'display': 'inline-block'}),
+    ], className='app__input', style={'width': '15%', 'display': 'inline-block'}),
     html.Div([
         html.Span(["marker-size-limits",
                    dcc.RangeSlider(
@@ -253,7 +248,7 @@ def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, 
         mode='markers',
         marker={
             'color': color_new,
-            'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale ,
+            'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
             'size': size_new,
             'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
             'line': {
@@ -274,7 +269,7 @@ def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, 
 
 
 def _get_new_sizes(ref_values, size_range):
-    "Map ``ref_values`` to a range within ``size_range`` in a linear fashion."
+    """Map ``ref_values`` to a range within ``size_range`` in a linear fashion."""
     ref_values = np.asarray(ref_values)
     ref_min, ref_max = np.min(ref_values), np.max(ref_values)
     slope = (size_range[1] - size_range[0]) / float(ref_max - ref_min)
@@ -283,13 +278,15 @@ def _get_new_sizes(ref_values, size_range):
 
 def return_modelData_atoms(callback_hoverdict):
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
-    if mode == "atomic": atoms_id = system_ids[atoms_id]
+    if mode == "atomic":
+        atoms_id = system_ids[atoms_id]
     return json.loads(helpers.ase2json(atoms[atoms_id]))
 
 
 def return_style_callback(callback_hoverdict, default=-1):
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
-    if mode == "atomic": atoms_id = system_ids[atoms_id]
+    if mode == "atomic":
+        atoms_id = system_ids[atoms_id]
     if default == -1:
         atoms_id = atoms[atoms_id]
     else:
@@ -300,7 +297,8 @@ def return_style_callback(callback_hoverdict, default=-1):
 def return_shape_callback(callback_hoverdict, default=-1):
     atoms_id = callback_hoverdict["points"][0]["pointNumber"]
     callback_id = callback_hoverdict["points"][0]["pointNumber"]
-    if mode == "atomic": atoms_id = system_ids[atoms_id]
+    if mode == "atomic":
+        atoms_id = system_ids[atoms_id]
     if default == -1:
         atoms_id = atoms[atoms_id]
     else:
