@@ -21,7 +21,11 @@ l_max=8, atom_sigma=0.5 with a cutoff of 4.5A
 1. Use the visualiser! This needs to be in the current directory, so just link 
 it here. 
     ```
-    python visualize_plot.py
+     ./visualize_plot.py --config-file config.txt
+   
+   OR
+   
+   ./visualize_plot.py --fxyz ASAP-pca-d10.xyz --title "Methane collision example" --height 530 --mode molecular
     ```
 1. to see that the result is the same, choose `pca_coord_0` and `pca_coord_1` on the x and y axes respectively. You can also have the energy as marker colour.  
    
