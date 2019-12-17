@@ -11,7 +11,6 @@ import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 import numpy as np
-import pandas as pd
 import plotly.graph_objs as go
 
 import helpers
@@ -33,49 +32,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     atoms = ase.io.read(extended_xyz_file, ':')
     [atoms[i].set_pbc(False) for i in range(len(atoms))]
 
-    def build_dataframe_features(atoms, mode='molecular'):
-        if mode == 'atomic':
-            keys = atoms[0].arrays.keys()
-        else:
-            keys = atoms[0].info.keys()
-
-        keys_expanded = {}
-
-        if mode == 'atomic':
-            at_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
-            at_numbers = list(np.array(at_numbers).flatten())
-            sys_ids = []
-            for i, mol in enumerate(atoms):
-                sys_ids += [i] * len(mol)
-            keys_expanded['system_ids'] = sys_ids
-            keys_expanded['atomic_numbers'] = at_numbers
-
-        for k in keys:
-            if mode == 'atomic':
-                if len(atoms[0].arrays[k].shape) > 1:
-                    for i in range(atoms[0].arrays[k].shape[1]):
-                        print(k, i)
-                        keys_expanded[k + '_' + str(i)] = np.array(
-                            [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
-                        print(np.array(keys_expanded[k + '_' + str(i)]).shape)
-                else:
-                    keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
-                    print(k, len(keys_expanded[k]))
-                    continue
-
-            else:
-                if isinstance(atoms[0].info[k], np.ndarray):
-                    for i in range(len(atoms[0].info[k])):
-                        keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
-                else:
-                    keys_expanded[k] = [x.info[k] for x in atoms]
-
-        df = pd.DataFrame(data=keys_expanded)
-        return df
-
     # Setup of the dataframes and atom/molecular infos for the 3D-Viewer
     shapes = []
-    dataframe = build_dataframe_features(atoms, mode=mode)
+    dataframe = helpers.build_dataframe_features(atoms, mode=mode)
     if mode == 'atomic':
         c_first_marker = atoms[0].get_positions()[0]
         system_ids = dataframe['system_ids']

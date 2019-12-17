@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
 
@@ -157,3 +158,42 @@ def ase2xyz(atoms):
 
 
 # {"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
+def build_dataframe_features(atoms, mode='molecular'):
+    if mode == 'atomic':
+        keys = atoms[0].arrays.keys()
+    else:
+        keys = atoms[0].info.keys()
+
+    keys_expanded = {}
+
+    if mode == 'atomic':
+        at_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
+        at_numbers = list(np.array(at_numbers).flatten())
+        sys_ids = []
+        for i, mol in enumerate(atoms):
+            sys_ids += [i] * len(mol)
+        keys_expanded['system_ids'] = sys_ids
+        keys_expanded['atomic_numbers'] = at_numbers
+
+    for k in keys:
+        if mode == 'atomic':
+            if len(atoms[0].arrays[k].shape) > 1:
+                for i in range(atoms[0].arrays[k].shape[1]):
+                    print(k, i)
+                    keys_expanded[k + '_' + str(i)] = np.array(
+                        [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
+                    print(np.array(keys_expanded[k + '_' + str(i)]).shape)
+            else:
+                keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
+                print(k, len(keys_expanded[k]))
+                continue
+
+        else:
+            if isinstance(atoms[0].info[k], np.ndarray):
+                for i in range(len(atoms[0].info[k])):
+                    keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
+            else:
+                keys_expanded[k] = [x.info[k] for x in atoms]
+
+    df = pd.DataFrame(data=keys_expanded)
+    return df
