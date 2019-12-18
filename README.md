@@ -34,6 +34,8 @@ Christian Kunkel (christian.kunkel@tum.de)
 
 Simon Wengert (s.wengert@tum.de)
 
+Tamas K. Stenczel (tks32@cam.ac.uk)
+
 Licence so far: BY-SA
 
 
