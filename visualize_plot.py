@@ -265,6 +265,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         shapes = []
         if mode == 'atomic':
             # displaced by CoM as well as the whole viewer
+            # I now just moved the box and the marker, cause this then directly works in both modes
             pos = atoms_id.get_positions()[atomic_numbers[callback_id]] - atoms_id.get_center_of_mass()
             print(atoms_id, atomic_numbers[callback_id], pos)
             print(callback_id, atomic_numbers[callback_id])
