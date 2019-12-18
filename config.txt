@@ -1,6 +1,6 @@
 [Basic]
 
-extended_xyz_file=test.xyz
+extended_xyz_file=ASAP-pca-d6_water_example.xyz
 # path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
 
 height_graph=530
