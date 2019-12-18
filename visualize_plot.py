@@ -41,52 +41,56 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         atomic_numbers = dataframe['atomic_numbers']
         dataframe.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
 
-    print(dataframe.head())
+    print('New Dataframe\n', dataframe.head())
 
     # add a periodic box if needed
     shapes += helpers.get_periodic_box_shape_dict(atoms[0])
 
-    # Initial data for the graph and 3D viewer
-    default_style = helpers.return_style(atoms[0], default=0)
+    # CONSTANT graph styles
+    const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
+    const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
+
+    # Initial data and styles for the graph and 3D viewer
+    viewer_3d_default_style = helpers.return_style(atoms[0], default=0)
     x_default = dataframe[dataframe.columns.tolist()[0]].tolist()
     y_default = dataframe[dataframe.columns.tolist()[1]].tolist()
-    size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
-    size_default = np.array(size_default)
-    size_default = list(size_default - min(size_default))  # cant be smaller than 0
-    color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
+    graph_marker_size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
+    graph_marker_size_default = np.array(graph_marker_size_default)
+    graph_marker_size_default = list(graph_marker_size_default - min(graph_marker_size_default))  # cant be smaller than 0
+    graph_color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
-    style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
+
 
     # Setup of app
     app = dash.Dash(__name__)
 
     app.layout = html.Div(children=[
-        html.Div(children=title, className='what-is'),
+        html.Div(children=title, className='what-is', id='main_title'),
 
         html.Div([
             html.Span(["x-axis", html.Br(),
                        dcc.Dropdown(
                            id='x-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=0, style=style_dropdown)], className='app__dropdown',
+                           value=0, style=const_style_dropdown)], className='app__dropdown',
                       style={'width': '25%', 'display': 'inline-block'}),
             html.Span(['y-axis',
                        dcc.Dropdown(
                            id='y-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=1, style=style_dropdown)], className='app__dropdown',
+                           value=1, style=const_style_dropdown)], className='app__dropdown',
                       style={'width': '25%', 'display': 'inline-block'}),
             html.Span(["marker-size",
                        dcc.Dropdown(
                            id='marker_size',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=2, style=style_dropdown)], className='app__dropdown',
+                           value=2, style=const_style_dropdown)], className='app__dropdown',
                       style={'width': '25%', 'display': 'inline-block'}),
             html.Span(["marker-color",
                        dcc.Dropdown(
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=3, style=style_dropdown)], className='app__dropdown',
+                           value=3, style=const_style_dropdown)], className='app__dropdown',
                       style={'width': '25%', 'display': 'inline-block'}),
         ], className="app__dropdown"),
 
@@ -95,7 +99,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        dcc.Input(
                            id='colorscale',
                            type='text',
-                           placeholder='colorscale')], className='app__dropdown',
+                           placeholder='colorscale',
+                           style=const_style_colorscale)], className='app__dropdown',
                       style={'width': '15%', 'display': 'inline-block'}),
         ], className='app__input', style={'width': '15%', 'display': 'inline-block'}),
         html.Div([
@@ -131,10 +136,10 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                          'y': y_default,
                          'mode': 'markers',
                          'marker': {
-                             'color': color_default,
+                             'color': graph_color_default,
                              'colorscale': "Viridis",
                              'colorbar': {'title': colorbar_title},
-                             'size': size_default,
+                             'size': graph_marker_size_default,
                              'line': {
                                  'color': 'rgb(0, 116, 217)',  # todo: implement border color option
                                  'width': 0.5
@@ -155,7 +160,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         html.Div([dcc.Loading(html.Div([
             dash_bio.Molecule3dViewer(
                 id='3d-viewer',
-                styles=default_style,
+                styles=viewer_3d_default_style,
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
             html.Div(id='molecule3d-output')
