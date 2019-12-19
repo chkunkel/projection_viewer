@@ -1,0 +1,90 @@
+body {
+    font-family: "Open Sans", sans-serif;
+    background-color: #F9FAFB;
+    font-size: 10px;
+}
+
+h3 {
+    font-size: 20px;
+    letter-spacing: 0.23rem;
+    padding: 20px 20px 20px 20x;
+}
+
+p {
+    color: #555555;
+    line-height: 1.5;
+    letter-spacing: .25px;
+    word-wrap: break-word;
+}
+
+.uppercase {
+    text-transform: uppercase;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.title {
+    font-family: serif;
+}
+
+.bg-white {
+    background-color: #fff;
+}
+
+.p-0 {
+    padding: 0px;
+}
+
+.app__container_scatter {
+  width: 68%;
+  display: inline-block;
+}
+
+.app__container_3dmolviewer {
+  width: 30%;
+  display: inline-block;
+  border: solid;
+  border-width: 1px;
+}
+
+
+.app__remarks_viewer {
+  padding: 0px 10px 0px 10px;
+  font-size: 10px;
+}
+
+
+.app__header {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+.app__controls {
+    display: flex;
+    justify-content: center;
+}
+
+.app__dropdown {
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 0px;
+    padding-bottom: 0px; 
+    font-size:10px;
+    width: 15%;
+    display: inline-block;
+    justify-content: center;
+}
+
+.app__slider {
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 0px;
+    padding-bottom: 40px; 
+    font-size:10px;
+    width: 30%;
+    display: inline-block;
+}
+

@@ -54,10 +54,10 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     viewer_3d_default_style = helpers.return_style(atoms[0], default=0)
     x_default = dataframe[dataframe.columns.tolist()[0]].tolist()
     y_default = dataframe[dataframe.columns.tolist()[1]].tolist()
-    graph_marker_size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
-    graph_marker_size_default = np.array(graph_marker_size_default)
-    graph_marker_size_default = list(graph_marker_size_default - min(graph_marker_size_default))  # cant be smaller than 0
-    graph_color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
+    size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
+    size_default = np.array(size_default)
+    size_default = list(size_default - min(size_default))  # cant be smaller than 0
+    color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
 
 
@@ -65,44 +65,41 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     app = dash.Dash(__name__)
 
     app.layout = html.Div(children=[
-        html.Div(children=title, className='what-is', id='main_title'),
+        html.H3(children=title),
 
         html.Div([
             html.Span(["x-axis", html.Br(),
                        dcc.Dropdown(
                            id='x-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=0, style=const_style_dropdown)], className='app__dropdown',
-                      style={'width': '25%', 'display': 'inline-block'}),
+                           value=0, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(['y-axis',
                        dcc.Dropdown(
                            id='y-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=1, style=const_style_dropdown)], className='app__dropdown',
-                      style={'width': '25%', 'display': 'inline-block'}),
+                           value=1, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(["marker-size",
                        dcc.Dropdown(
                            id='marker_size',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=2, style=const_style_dropdown)], className='app__dropdown',
-                      style={'width': '25%', 'display': 'inline-block'}),
+                           value=2, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(["marker-color",
                        dcc.Dropdown(
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=3, style=const_style_dropdown)], className='app__dropdown',
-                      style={'width': '25%', 'display': 'inline-block'}),
-        ], className="app__dropdown"),
-
-        html.Div([
+                           value=3, style=const_style_dropdown)], className='app__dropdown'),
             html.Span([html.I('colorscale'), html.Br(),
                        dcc.Input(
                            id='colorscale',
                            type='text',
-                           placeholder='colorscale',
-                           style=const_style_colorscale)], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
-        ], className='app__input', style={'width': '15%', 'display': 'inline-block'}),
+                           placeholder='colormap name')], className='app__dropdown'),
+            html.Span([html.I('marker-opacity'), html.Br(),
+                       dcc.Input(
+                           id='marker_opacity',
+                           type='text',
+                           placeholder='marker_opacity')], className='app__dropdown'),
+        ], className="app__controls"),
+
         html.Div([
             html.Span(["marker-size-limits",
                        dcc.RangeSlider(
@@ -110,52 +107,29 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                            min=1, max=100, step=0.1, value=[5, 50],
                            marks={s: s for s in range(0, 101, 10)},
                            allowCross=False,
-                       )], className='app__slider', style={'width': '50%', 'display': 'inline-block'}),
-            html.Br(),
-            html.Br(),
-        ], className="app__slider"),
-        html.Div([
+                       )], className='app__slider'),
             html.Span(["marker-color-limits",
                        dcc.RangeSlider(
                            id='marker_color_limits',
                            min=0, max=100, step=0.1, value=[0, 100],
                            marks={p: '{}%'.format(p) for p in range(0, 101, 10)},
                            allowCross=False,
-                       )], className='app__slider', style={'width': '50%', 'display': 'inline-block'}),
+                       )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ], className="app__slider"),
+        ],className='app__controls'),
 
+
+        # placeholder by graph, now filled in by callback on startup
         html.Div([
             dcc.Graph(
                 id='graph',
-                hoverData={},
                 figure={
-                    'data': [
-                        {'x': x_default,
-                         'y': y_default,
-                         'mode': 'markers',
-                         'marker': {
-                             'color': graph_color_default,
-                             'colorscale': "Viridis",
-                             'colorbar': {'title': colorbar_title},
-                             'size': graph_marker_size_default,
-                             'line': {
-                                 'color': 'rgb(0, 116, 217)',  # todo: implement border color option
-                                 'width': 0.5
-                             }, },
-
-                         'name': 'TODO'},
-                    ],
-                    'layout': {
-                        'xaxis': {'zeroline': False},
-                        'yaxis': {'zeroline': False},
-                        # 'title': 'Data Visualization',
-                        'height': height_graph,
-                    }
+                    'data': [], 'layout': {}
                 }
             )
-        ], style={'width': '63%', 'display': 'inline-block'}),
+        ], className='app__container_scatter'),
+
 
         html.Div([dcc.Loading(html.Div([
             dash_bio.Molecule3dViewer(
@@ -163,14 +137,15 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 styles=viewer_3d_default_style,
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
-            html.Div(id='molecule3d-output')
+            dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.  
+                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''', className='app__remarks_viewer')
+#            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
+#                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
-            id='div-3dviewer'))], className='container bg-white p-0',
-            style={'vertical-align': 'center', 'width': '35.5%', 'display':
-                'inline-block', 'border-style': 'solid', 'height': height_graph}),
-        'Remarks:', html.Br(),
-        'Gray wireframe: SOAP cutoff radius around selected atom.', html.Br(),
-        'Green sphere: Marker for selected atom.'
+            id='div-3dviewer'))], className='app__container_3dmolviewer'),
+            #style={'vertical-align': 'center', 'width': '30%', 'display':
+            #    'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
+
     ],
         className='app-body')
 
@@ -184,8 +159,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('marker_size_limits', 'value'),
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
-         dash.dependencies.Input('colorscale', 'value')])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale):
+         dash.dependencies.Input('colorscale', 'value'),
+         dash.dependencies.Input('marker_opacity','value'),])
+    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
         color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         color_span = np.abs(np.max(color_new) - np.min(color_new))
         color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
@@ -196,6 +172,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
         size_new = np.array(size_new)
         size_new = size_new - min(size_new)  # cant be smaller than 0
+        if marker_opacity==None:
+            marker_opacity=1.0
         try:
             size_new = _get_new_sizes(size_new, marker_size_limits)
         except:
@@ -218,6 +196,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
+                'opacity': float(marker_opacity),
                 'line': {
                     'color': 'rgb(0, 116, 217)',
                     'width': 0.5
@@ -226,10 +205,12 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             name='TODO',
         )],
             'layout': go.Layout(height=height_graph,
+
+                                hovermode='closest',
                                 #         title = 'Data Visualization'
-                                xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside',
+                                xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True, 'title': dataframe.columns.tolist()[x_axis]},
-                                yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside',
+                                yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True, 'title': dataframe.columns.tolist()[y_axis]}
                                 )
         }
@@ -270,6 +251,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         shapes = []
         if mode == 'atomic':
             # displaced by CoM as well as the whole viewer
+            # I now just moved the box and the marker, cause this then directly works in both modes
             pos = atoms_id.get_positions()[atomic_numbers[callback_id]] - atoms_id.get_center_of_mass()
             print(atoms_id, atomic_numbers[callback_id], pos)
             print(callback_id, atomic_numbers[callback_id])

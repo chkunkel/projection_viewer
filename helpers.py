@@ -65,7 +65,8 @@ def get_periodic_box_shape_dict(atoms_ase):
     # so far we only show a box when it is 3d periodic
     if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return []
 
-    point0 = np.array([0.0, 0.0, 0.0])
+    #point0 = np.array([0.0, 0.0, 0.0])
+    point0 = -atoms_ase.get_center_of_mass()
     lattice_vectors = atoms_ase.get_cell()
     point1 = list(point0 + lattice_vectors[0])
     point2 = list(point0 + lattice_vectors[1])
