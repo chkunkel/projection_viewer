@@ -4,6 +4,7 @@ import argparse
 import configparser
 import json
 import sys
+import copy
 
 import ase.io
 import dash
@@ -101,11 +102,18 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
        ], className="app__controls"),
 
         html.Div([
+            html.Span(["marker-size-range",
+                       dcc.RangeSlider(
+                           id='marker_size_range',
+                           min=1, max=100, step=0.1, value=[5, 50],
+                           marks={s: s for s in range(0, 101, 10)},
+                           allowCross=False,
+                       )], className='app__slider'),
             html.Span(["marker-size-limits",
                        dcc.RangeSlider(
                            id='marker_size_limits',
-                           min=1, max=100, step=0.1, value=[5, 50],
-                           marks={s: s for s in range(0, 101, 10)},
+                           min=0, max=100, step=0.1, value=[0, 100],
+                           marks={p: '{}%'.format(p) for p in range(0, 101, 10)},
                            allowCross=False,
                        )], className='app__slider'),
             html.Span(["marker-color-limits",
@@ -135,7 +143,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 styles=viewer_3d_default_style,
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
-            dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.  
+            dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.
                             **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''',
                          className='app__remarks_viewer')
             #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
@@ -154,23 +162,23 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         [dash.dependencies.Input('x-axis', 'value'),
          dash.dependencies.Input('y-axis', 'value'),
          dash.dependencies.Input('marker_size', 'value'),
+         dash.dependencies.Input('marker_size_range', 'value'),
          dash.dependencies.Input('marker_size_limits', 'value'),
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
          dash.dependencies.Input('colorscale', 'value'),
          dash.dependencies.Input('marker_opacity', 'value'), ])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale,
+    def update_graph(x_axis, y_axis, marker_size, marker_size_range, marker_size_limits, marker_color, marker_color_limits, colorscale,
                      marker_opacity):
-        color_new = dataframe[dataframe.columns.tolist()[marker_color]]
+        # color limits
+        color_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_color]])
         color_span = np.abs(np.max(color_new) - np.min(color_new))
-        color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
-        color_new_upper = np.min(color_new) + color_span / 100. * marker_color_limits[1]
-        indices_in_limits = np.asarray(
-            [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
+        color_new_min = np.min(color_new)
+        color_new_max = np.max(color_new)
+        color_new_lower = color_new_min + color_span / 100. * marker_color_limits[0]
+        color_new_upper = color_new_min + color_span / 100. * marker_color_limits[1]
 
-        size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
-        size_new = np.array(size_new)
-        size_new = size_new - min(size_new)  # cant be smaller than 0
+        # opacity
         if marker_opacity == None:
             marker_opacity = 1.0
         else:
@@ -183,18 +191,24 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 print('Marker opacity set: {} ; Invalid, set to 1.0 be default.'.format(marker_opacity))
                 marker_opacity = 1.0
 
+        size_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_size]].tolist())
+        size_new = np.array(size_new)
+        size_new = size_new - np.min(size_new)  # cant be smaller than 0
+        size_new_range = np.max(size_new)
+        size_new_lower = size_new_range/100.*marker_size_limits[0]
+        size_new_upper = size_new_range/100.*marker_size_limits[1]
+
         try:
-            size_new = _get_new_sizes(size_new, marker_size_limits)
+            for idx, size_new_i in enumerate(size_new):
+                if size_new_i < size_new_lower:
+                    size_new[idx] = marker_size_range[0]
+                elif size_new_i > size_new_upper:
+                    size_new[idx] = marker_size_range[1]
+                else:
+                    size_new[idx] = _get_new_sizes(size_new_i, [size_new_lower, size_new_upper], marker_size_range)
         except:
             print('Error in scaling marker sizes. Using `30` for all data points instead.')
             size_new = np.asarray([30] * len(size_new))
-        size_new_tmp = []
-        for idx, size_i in enumerate(size_new):
-            if idx in indices_in_limits:
-                size_new_tmp.append(size_i)
-            else:
-                size_new_tmp.append(0)
-        size_new = np.asarray(size_new_tmp)
 
         return {'data': [go.Scatter(
             x=dataframe[dataframe.columns.tolist()[x_axis]].tolist(),
@@ -206,6 +220,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
                 'opacity': marker_opacity,
+                'cmin' : color_new_lower,
+                'cmax' : color_new_upper,
                 'line': {
                     'color': 'rgb(0, 116, 217)',
                     'width': 0.5
@@ -224,12 +240,10 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                                 )
         }
 
-    def _get_new_sizes(ref_values, size_range):
-        """Map ``ref_values`` to a range within ``size_range`` in a linear fashion."""
-        ref_values = np.asarray(ref_values)
-        ref_min, ref_max = np.min(ref_values), np.max(ref_values)
-        slope = (size_range[1] - size_range[0]) / float(ref_max - ref_min)
-        return size_range[0] + slope * (ref_values - ref_min)
+    def _get_new_sizes(value, value_range, size_range):
+        """Map ``value`` to a range within ``size_range`` in a linear fashion."""
+        slope = (size_range[1] - size_range[0]) / float(value_range[1]- value_range[0])
+        return size_range[0] + slope * (value - value_range[0])
 
     def return_modelData_atoms(callback_hoverdict):
         atoms_id = callback_hoverdict["points"][0]["pointNumber"]
