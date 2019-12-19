@@ -1,4 +1,4 @@
-tooltips={}
+tooltips = {}
 
 tooltips['compound'] = """
         <div>
@@ -28,8 +28,7 @@ tooltips['compound'] = """
 
         """
 
-
-tooltips['atomic']="""
+tooltips['atomic'] = """
     <div>
             <img
                 src="@p_images" height="220" alt="" width="220"
@@ -58,7 +57,7 @@ tooltips['atomic']="""
 
     """
 
-tooltips['generic']="""
+tooltips['generic'] = """
         <div>
             <div>
                 <span style="font-size: 13px;">Property:   @feature</span>
@@ -73,4 +72,3 @@ tooltips['generic']="""
 
 
         """
- 

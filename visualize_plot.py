@@ -42,13 +42,17 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         atomic_numbers = dataframe['atomic_numbers']
         dataframe.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
 
-    print(dataframe.head())
+    print('New Dataframe\n', dataframe.head())
 
     # add a periodic box if needed
     shapes += helpers.get_periodic_box_shape_dict(atoms[0])
 
-    # Initial data for the graph and 3D viewer
-    default_style = helpers.return_style(atoms[0], default=0)
+    # CONSTANT graph styles
+    const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
+    const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
+
+    # Initial data and styles for the graph and 3D viewer
+    viewer_3d_default_style = helpers.return_style(atoms[0], default=0)
     x_default = dataframe[dataframe.columns.tolist()[0]].tolist()
     y_default = dataframe[dataframe.columns.tolist()[1]].tolist()
     size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
@@ -56,7 +60,6 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     size_default = list(size_default - min(size_default))  # cant be smaller than 0
     color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
-    style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
 
     # Setup of app
     app = dash.Dash(__name__)
@@ -69,22 +72,22 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        dcc.Dropdown(
                            id='x-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=0, style=style_dropdown)], className='app__dropdown'),
+                           value=0, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(['y-axis',
                        dcc.Dropdown(
                            id='y-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=1, style=style_dropdown)], className='app__dropdown'),
+                           value=1, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(["marker-size",
                        dcc.Dropdown(
                            id='marker_size',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=2, style=style_dropdown)], className='app__dropdown'),
+                           value=2, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(["marker-color",
                        dcc.Dropdown(
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=3, style=style_dropdown)], className='app__dropdown'),
+                           value=3, style=const_style_dropdown)], className='app__dropdown'),
             html.Span(['marker-opacity', html.Br(),
                        dcc.Input(
                            id='marker_opacity',
@@ -114,8 +117,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ],className='app__controls'),
-
+        ], className='app__controls'),
 
         # placeholder by graph, now filled in by callback on startup
         html.Div([
@@ -127,20 +129,20 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             )
         ], className='app__container_scatter'),
 
-
         html.Div([dcc.Loading(html.Div([
             dash_bio.Molecule3dViewer(
                 id='3d-viewer',
-                styles=default_style,
+                styles=viewer_3d_default_style,
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
             dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.  
-                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''', className='app__remarks_viewer')
-#            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>', 
-#                     id='molecule3d-output', className='app__remarks_viewer'),
+                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''',
+                         className='app__remarks_viewer')
+            #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
+            #                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
             id='div-3dviewer'))], className='app__container_3dmolviewer',
-            style={'height': height_graph, 'width_graph': width_graph}),
+         style={'height': height_graph, 'width_graph': width_graph}),
 
     ],
         className='app-body')
@@ -156,8 +158,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
          dash.dependencies.Input('colorscale', 'value'),
-         dash.dependencies.Input('marker_opacity','value'),])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
+         dash.dependencies.Input('marker_opacity', 'value'), ])
+    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale,
+                     marker_opacity):
         color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         color_span = np.abs(np.max(color_new) - np.min(color_new))
         color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
@@ -168,7 +171,18 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
         size_new = np.array(size_new)
         size_new = size_new - min(size_new)  # cant be smaller than 0
-        if marker_opacity==None: marker_opacity=1.0
+        if marker_opacity == None:
+            marker_opacity = 1.0
+        else:
+            try:
+                # convert to float here and check if value was valid
+                marker_opacity = float(marker_opacity)
+                if marker_opacity < 0. or marker_opacity > 1.:
+                    raise ValueError
+            except ValueError:
+                print('Marker opacity set: {} ; Invalid, set to 1.0 be default.'.format(marker_opacity))
+                marker_opacity = 1.0
+
         try:
             size_new = _get_new_sizes(size_new, marker_size_limits)
         except:
@@ -191,7 +205,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
-                'opacity': float(marker_opacity),
+                'opacity': marker_opacity,
                 'line': {
                     'color': 'rgb(0, 116, 217)',
                     'width': 0.5
@@ -200,7 +214,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             name='TODO',
         )],
             'layout': go.Layout(height=height_graph,
-            
+
                                 hovermode='closest',
                                 #         title = 'Data Visualization'
                                 xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,

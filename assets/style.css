@@ -5,12 +5,9 @@ body {
 }
 
 h3 {
-    font-size: 18px;
-    padding-left: 15px;
-    padding-right: 15px;
-    padding-top: 0px;
-    padding-bottom: 0px; 
+    font-size: 20px;
     letter-spacing: 0.23rem;
+    padding: 20px 20px 20px 20x;
 }
 
 p {
@@ -41,22 +38,21 @@ p {
 }
 
 .app__container_scatter {
-  width: 68%;
-  display: inline-block;
+    width: 68%;
+    display: inline-block;
 }
 
 .app__container_3dmolviewer {
-  width: 30%;
-  display: inline-block;
-  border: solid;
-  border-width: 1px;
-  vertical-align: top;
+    width: 30%;
+    display: inline-block;
+    border: solid;
+    border-width: 1px;
 }
 
 
 .app__remarks_viewer {
-  padding: 0px 10px 0px 10px;
-  font-size: 10px;
+    padding: 0px 10px 0px 10px;
+    font-size: 10px;
 }
 
 
@@ -75,8 +71,8 @@ p {
     padding-left: 15px;
     padding-right: 15px;
     padding-top: 0px;
-    padding-bottom: 0px; 
-    font-size:10px;
+    padding-bottom: 0px;
+    font-size: 10px;
     width: 15%;
     display: inline-block;
     justify-content: center;
@@ -86,8 +82,8 @@ p {
     padding-left: 15px;
     padding-right: 15px;
     padding-top: 0px;
-    padding-bottom: 40px; 
-    font-size:10px;
+    padding-bottom: 40px;
+    font-size: 10px;
     width: 30%;
     display: inline-block;
 }
