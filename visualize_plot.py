@@ -68,33 +68,33 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        dcc.Dropdown(
                            id='x-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=0, style=style_dropdown)], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
+                           value=0, style=style_dropdown)], className='app__dropdown'),
             html.Span(['y-axis',
                        dcc.Dropdown(
                            id='y-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=1, style=style_dropdown)], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
+                           value=1, style=style_dropdown)], className='app__dropdown'),
             html.Span(["marker-size",
                        dcc.Dropdown(
                            id='marker_size',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=2, style=style_dropdown)], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
+                           value=2, style=style_dropdown)], className='app__dropdown'),
             html.Span(["marker-color",
                        dcc.Dropdown(
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=3, style=style_dropdown)], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
+                           value=3, style=style_dropdown)], className='app__dropdown'),
             html.Span([html.I('colorscale'), html.Br(),
                        dcc.Input(
                            id='colorscale',
                            type='text',
-                           placeholder='colorscale')], className='app__dropdown',
-                      style={'width': '15%', 'display': 'inline-block'}),
-        ], className="app__dropdown"),
+                           placeholder='colormap name')], className='app__dropdown'),
+            html.Span([html.I('marker-opacity'), html.Br(),
+                       dcc.Input(
+                           id='marker_opacity',
+                           type='text',
+                           placeholder='marker_opacity')], className='app__dropdown'),
+        ], className="app__controls"),
 
         html.Div([
             html.Span(["marker-size-limits",
@@ -113,7 +113,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ],className='app_pickers'),
+        ],className='app__controls'),
 
 
         # placeholder by graph, now filled in by callback on startup
@@ -124,7 +124,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                     'data': [], 'layout': {}
                 }
             )
-        ], style={'width': '68%', 'display': 'inline-block'}),
+        ], className='app__container_scatter'),
 
 
         html.Div([dcc.Loading(html.Div([
@@ -138,9 +138,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
 #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>', 
 #                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
-            id='div-3dviewer'))], className='container bg-white p-0',
-            style={'vertical-align': 'center', 'width': '30%', 'display':
-                'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
+            id='div-3dviewer'))], className='app__container_3dmolviewer'),
+            #style={'vertical-align': 'center', 'width': '30%', 'display':
+            #    'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
 
     ],
         className='app-body')
@@ -155,8 +155,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('marker_size_limits', 'value'),
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
-         dash.dependencies.Input('colorscale', 'value')])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale):
+         dash.dependencies.Input('colorscale', 'value'),
+         dash.dependencies.Input('marker_opacity','value'),])
+    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
         color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         color_span = np.abs(np.max(color_new) - np.min(color_new))
         color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
@@ -167,6 +168,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
         size_new = np.array(size_new)
         size_new = size_new - min(size_new)  # cant be smaller than 0
+        if marker_opacity==None: marker_opacity=1.0
         try:
             size_new = _get_new_sizes(size_new, marker_size_limits)
         except:
@@ -189,6 +191,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
+                'opacity': float(marker_opacity),
                 'line': {
                     'color': 'rgb(0, 116, 217)',
                     'width': 0.5
