@@ -1,10 +1,14 @@
 import json
 
 import ase
+import ase.io
+import dash_core_components as dcc
+import dash_html_components as html
 import numpy as np
 import pandas as pd
 from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
+from dash import Dash
 
 
 def get_features_molecular(feature, atoms):
@@ -302,3 +306,165 @@ def construct_3d_view_data(data, point_index, skip_soap=False):
 
     viewer_data = dict(styles=styles, shapes=shapes, modelData=model_data)
     return viewer_data
+
+
+def initialise_application(data):
+    """
+    Set up the application. This should be ran only once, at the beginning of the session.
+
+    :return:
+    """
+
+    # STYLE SETTINGS
+    const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
+    const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
+
+    markdown_text = """**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius. 
+    **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* 
+    Zoom """
+
+    # Setup of app
+    app = Dash(__name__)
+
+    # layout
+    app.layout = html.Div(className='app-body',
+                          children=[
+                              # storage of the data in the application
+                              dcc.Store(id='app-memory', data=data, storage_type='session'),
+
+                              # title of the visualiser
+                              html.H3(children=data['styles']['title']),
+
+                              # Controls: Dropdown menus, opacity and choice of colourscale
+                              html.Div(className="app__controls", children=[
+                                  # dropdown menu for the x-axis
+                                  html.Span(className='app__dropdown',
+                                            children=["x-axis", html.Br(),
+                                                      dcc.Dropdown(id='dropdown-x-axis', style=const_style_dropdown,
+                                                                   options=[], value=0)]),
+                                  # dropdown menu for the y-axis
+                                  html.Span(className='app__dropdown',
+                                            children=["y-axis", html.Br(),
+                                                      dcc.Dropdown(id='dropdown-y-axis', style=const_style_dropdown,
+                                                                   options=[], value=0)]),
+                                  # dropdown menu for the marker size
+                                  html.Span(className='app__dropdown',
+                                            children=["marker size", html.Br(),
+                                                      dcc.Dropdown(id='dropdown-marker-size',
+                                                                   style=const_style_dropdown, options=[], value=0)]),
+                                  # dropdown menu for the marker colour
+                                  html.Span(className='app__dropdown',
+                                            children=["marker colour", html.Br(),
+                                                      dcc.Dropdown(id='dropdown-marker-colour',
+                                                                   style=const_style_dropdown, options=[], value=0)]),
+                                  # input field for marker opacity
+                                  html.Span(className='app__dropdown',
+                                            children=['marker opacity', html.Br(),
+                                                      dcc.Input(
+                                                          id='input-marker-opacity',
+                                                          type='text',
+                                                          placeholder='marker opacity 0.0 - 1.0')]),
+                                  # input field for colourscale
+                                  html.Span(className='app__dropdown',
+                                            children=['colourscale name', html.Br(),
+                                                      dcc.Input(
+                                                          id='input-colourscale',
+                                                          type='text',
+                                                          placeholder='colourscale')])
+                              ]),
+
+                              # Controls: Sliders for colour and size limits
+                              html.Div(className='app__controls', children=[
+                                  # Slider: marker size limits s
+                                  html.Span(className='app__slider',
+                                            children=['marker size limits',
+                                                      dcc.RangeSlider(id='slider_marker_size_limits', min=1, max=100,
+                                                                      step=0.1, value=[5, 50],
+                                                                      marks={s: str(s) for s in range(0, 101, 10)},
+                                                                      allowCross=False)]),
+
+                                  html.Span(className='app__slider',
+                                            children=["marker colour limits",
+                                                      dcc.RangeSlider(id='slider_marker_color_limits', min=0, max=100,
+                                                                      step=0.1, value=[0, 100],
+                                                                      marks={p: '{}%'.format(p) for p in
+                                                                             range(0, 101, 10)},
+                                                                      allowCross=False, )],
+                                            ),
+                                  # two of Br, perhaps we can remove these?
+                                  html.Br(),
+                                  html.Br(),
+                              ]),
+
+                              # Graph: placeholder, filled on graph intialisation
+                              html.Div(className='app__container_scatter', children=[
+                                  dcc.Graph(id='graph', figure={'data': [], 'layout': {}})], ),
+
+                              # 3D Viewer
+                              # a main Div, with a dcc.Loading compontnt in it for loading of the viewer
+                              html.Div(className='app__container_3dmolviewer',
+                                       style={'height': data['styles']['height_viewer'],
+                                              'width_graph': data['styles']['width_viewer']},
+                                       children=[
+                                           # loading component for the 3d viewer
+                                           dcc.Loading(
+                                               html.Div(children=[
+                                                   html.Div(id='div-3dviewer',
+                                                            # the actual viewer will be initialised here
+                                                            # todo: check that at_json works
+                                                            children=[]),
+                                                   # some info at the bottom of the viewer
+                                                   dcc.Markdown(id='markdown-info-in-viewer',
+                                                                children=markdown_text,
+                                                                className='app__remarks_viewer')
+                                               ]))])])
+
+    return app
+
+
+def load_xyz(filename, mode='atomic', verbose=True):
+    """
+    Loads the XYZ file
+
+    :param filename:
+    :param mode:
+    :param verbose:
+    :return:
+    """
+
+    # read atoms
+    atoms_list = ase.io.read(filename, ':')
+    [atoms_list[i].set_pbc(False) for i in range(len(atoms_list))]
+
+    # Setup of the dataframes and atom/molecular infos for the 3D-Viewer
+    df = build_dataframe_features(atoms_list, mode=mode)
+    system_index = None
+    atom_index_in_systems = None
+    if mode == 'atomic':
+        system_index = df['system_ids']
+        atom_index_in_systems = df['atomic_numbers']
+        df.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
+
+    if verbose:
+        print('New Dataframe\n', df.head())
+
+    at_list_json = [ase2json(at) for at in atoms_list]
+
+    data = {'system_index': system_index,
+            'atom_index_in_systems': atom_index_in_systems,
+            'df_json': df.to_json(),
+            'atoms_list_json': at_list_json,
+            'mode': mode}
+
+    return data
+
+
+def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, **kwargs):
+    config_dict = dict(title=title,
+                       height_viewer=height_viewer,
+                       height_graph=height_viewer,
+                       width_viewer=width_viewer,
+                       width_graph=width_viewer,
+                       **kwargs)
+
+    return config_dict
