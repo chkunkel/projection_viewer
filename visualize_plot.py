@@ -171,8 +171,18 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
         size_new = np.array(size_new)
         size_new = size_new - min(size_new)  # cant be smaller than 0
-        if marker_opacity==None:
-            marker_opacity=1.0
+        if marker_opacity == None:
+            marker_opacity = 1.0
+        else:
+            try:
+                # convert to float here and check if value was valid
+                marker_opacity = float(marker_opacity)
+                if marker_opacity < 0. or marker_opacity > 1.:
+                    raise ValueError
+            except ValueError:
+                print('Marker opacity set: {} ; Invalid, set to 1.0 be default.'.format(marker_opacity))
+                marker_opacity = 1.0
+
         try:
             size_new = _get_new_sizes(size_new, marker_size_limits)
         except:
@@ -195,7 +205,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
-                'opacity': float(marker_opacity),
+                'opacity': marker_opacity,
                 'line': {
                     'color': 'rgb(0, 116, 217)',
                     'width': 0.5
