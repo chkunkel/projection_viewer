@@ -1,48 +1,41 @@
 # This file is part of the projection_viewer.
 # (C) 2019 Christian Kunkel
 
+import argparse
+import configparser
+import itertools as ito
 import os
 import shutil
-import configparser
-import argparse
-
-import itertools as ito
-import numpy as np
-import pandas as pd
 
 import ase.io
-from ase.io import read
-
-from bokeh.plotting import figure, output_file, show, save, ColumnDataSource
-from bokeh.models import HoverTool, CustomJSHover, TapTool, CustomJS
-from bokeh import events
 import bokeh.io
-from bokeh.models import LinearColorMapper, Ticker, ColorBar
+import numpy as np
+import tooltips
+from ase.io import read
+from bokeh.models import HoverTool, TapTool, CustomJS
+from bokeh.models import LinearColorMapper, ColorBar
+from bokeh.plotting import figure, save, ColumnDataSource
 
 import helpers
-import tooltips
-
 
 # command-line adjustments
 parser = argparse.ArgumentParser()
 parser.add_argument( \
-        '--x_axis',
-        help = 'Dimension used on x-axis',
-        default=1,
-        type = int)
+    '--x_axis',
+    help='Dimension used on x-axis',
+    default=1,
+    type=int)
 parser.add_argument( \
-        '--y_axis',
-        help = 'Dimension used on y-axis',
-        default=2,
-        type = int)
+    '--y_axis',
+    help='Dimension used on y-axis',
+    default=2,
+    type=int)
 args = parser.parse_args()
-
-
 
 # read config
 config = configparser.ConfigParser()
 config.read('config.txt')
-extended_xyz_file =   config['Basic']['extended_xyz_file']
+extended_xyz_file = config['Basic']['extended_xyz_file']
 mode = config['Basic']['mode']
 coord_key = config['Basic']['coord_key']
 property_visualize = config['Basic']['property_visualize']
@@ -50,10 +43,8 @@ dimensions = config['Basic']['dimensions']
 consider_species = config['Basic']['consider_species']
 title = config['Basic']['title']
 
-
 # read atoms
-atoms = read(extended_xyz_file,':')
-
+atoms = read(extended_xyz_file, ':')
 
 # collect data
 if '[' in consider_species:
@@ -63,10 +54,10 @@ elif consider_species == 'all':
 else:
     consider_species = str(consider_species)
 
-if mode =='atomic':
-    feature = helpers.get_features_atomic(property_visualize, atoms, consider_species = consider_species)
-    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)]*len(mol) for idx, mol in enumerate(atoms)]))
-    mols = list(ito.chain(*[[mol]*len(mol) for idx, mol in enumerate(atoms)]))
+if mode == 'atomic':
+    feature = helpers.get_features_atomic(property_visualize, atoms, consider_species=consider_species)
+    p_xyzs = list(ito.chain(*[['mol_{}.xyz'.format(idx)] * len(mol) for idx, mol in enumerate(atoms)]))
+    mols = list(ito.chain(*[[mol] * len(mol) for idx, mol in enumerate(atoms)]))
     # p_xyzs = [item for sublist in p_xzys for item in sublist]
     atomic_numbers = [range(len(mol)) for mol in atoms]
     atomic_numbers = list(np.array(atomic_numbers).flatten())
@@ -76,9 +67,8 @@ elif mode in ['compound', 'generic']:
     feature = helpers.get_features_molecular(property_visualize, atoms)
     p_xyzs = ['mol_{}.xyz'.format(idx) for idx in range(len(atoms))]
     mols = [mol for mol in atoms]
-    atomic_numbers = [-1]*len(feature)
+    atomic_numbers = [-1] * len(feature)
     embedding_coordinates = np.asarray(helpers.get_features_molecular(coord_key, atoms))
-
 
 # write molecules
 print('Writing molecules')
@@ -88,7 +78,6 @@ os.mkdir('data_plot')
 for p_xyz_i, mol_i in zip(p_xyzs, mols):
     ase.io.write(os.path.join('data_plot', p_xyz_i), mol_i)
 
-
 # prepare visualization
 print("Layouting the final plot")
 
@@ -97,72 +86,70 @@ hover = HoverTool(tooltips=tooltips.tooltips[mode])
 TOOLS = "crosshair,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select,poly_select,lasso_select,"
 
 p = figure(
-        title = title,
-        x_axis_label = 'Dimension 1',
-        y_axis_label = 'Dimension 2',
-        plot_width = 900,
-        plot_height = 700,
-        tools = [TOOLS, hover],
-        )
+    title=title,
+    x_axis_label='Dimension 1',
+    y_axis_label='Dimension 2',
+    plot_width=900,
+    plot_height=700,
+    tools=[TOOLS, hover],
+)
 p.background_fill_color = 'beige'
 color_mapper = LinearColorMapper(palette='Viridis256', low=min(feature), high=max(feature))
 
 source = ColumnDataSource({
-    'index'      :  range(len(feature)),
-    'x1'         :  embedding_coordinates[:, args.x_axis].tolist(),
-    'x2'         :  embedding_coordinates[:, args.y_axis].tolist(),
-    'feature'    :  feature,
-    'p_xyzs'     :  p_xyzs,
-    'atomic_num' :  atomic_numbers,
-    })
+    'index': range(len(feature)),
+    'x1': embedding_coordinates[:, args.x_axis].tolist(),
+    'x2': embedding_coordinates[:, args.y_axis].tolist(),
+    'feature': feature,
+    'p_xyzs': p_xyzs,
+    'atomic_num': atomic_numbers,
+})
 
 r_circles = p.scatter(
-        'x1',
-        'x2',
-        size = 4,
-        alpha = 0.3,
-        source = source,
-        level = 'overlay',
-        line_width = 4.5,
-        color = {'field': 'feature', 'transform': color_mapper},
-        )
+    'x1',
+    'x2',
+    size=4,
+    alpha=0.3,
+    source=source,
+    level='overlay',
+    line_width=4.5,
+    color={'field': 'feature', 'transform': color_mapper},
+)
 
 color_bar = ColorBar(
-        color_mapper = color_mapper,
-        label_standoff = 12,
-        border_line_color = None,
-        location = (0,0)
-        )
+    color_mapper=color_mapper,
+    label_standoff=12,
+    border_line_color=None,
+    location=(0, 0)
+)
 p.add_layout(color_bar, 'right')
 
 code = """
 display_xyz(source.data['p_xyzs'][source.selected.indices], atomhighlight=source.data['atomic_num'][source.selected.indices])
 """[1:-1]
 callback_tap = CustomJS(
-        args = {"source":source},
-        code = code,
-        )
+    args={"source": source},
+    code=code,
+)
 taptool = p.select(type=TapTool)
 taptool.callback = callback_tap
 
-code="""
+code = """
 const indices = cb_data.index.indices;
 display_xyz(source.data['p_xyzs'][indices], atomhighlight=source.data['atomic_num'][indices])
 //title.text = 'Hovering over points: ' + source.data['p_xyzs'][indices];
 """[1:-1]
 callback_hover = CustomJS(
-        args = {'title': p.title, "source":source},
-        code = code,
-        )
+    args={'title': p.title, "source": source},
+    code=code,
+)
 p.hover.callback = callback_hover
 
 save(p)
 
-
 # Add 3dmol.js
 newfile = ''
 err = False
-
 
 with open("index.html") as out:
     for line in out.readlines():
@@ -246,7 +233,7 @@ with open("index.html") as out:
 
     }
 
-display_xyz('"""+p_xyzs[0]+"""');
+display_xyz('""" + p_xyzs[0] + """');
 
 </script>
 
@@ -264,7 +251,8 @@ display_xyz('"""+p_xyzs[0]+"""');
     <th>
 
 
-            """; continue
+            """;
+            continue
 
         if "<\body>" in line:
             newfile += """
@@ -276,7 +264,7 @@ display_xyz('"""+p_xyzs[0]+"""');
         newfile += line
 
 if not err:
-    with open("index.html","w") as out:
+    with open("index.html", "w") as out:
         out.write(newfile)
 else:
     print(err)

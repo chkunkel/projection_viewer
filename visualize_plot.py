@@ -60,7 +60,6 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
 
-
     # Setup of app
     app = dash.Dash(__name__)
 
@@ -117,8 +116,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ],className='app__controls'),
-
+        ], className='app__controls'),
 
         # placeholder by graph, now filled in by callback on startup
         html.Div([
@@ -130,7 +128,6 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             )
         ], className='app__container_scatter'),
 
-
         html.Div([dcc.Loading(html.Div([
             dash_bio.Molecule3dViewer(
                 id='3d-viewer',
@@ -138,13 +135,14 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
             dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.  
-                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''', className='app__remarks_viewer')
-#            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
-#                     id='molecule3d-output', className='app__remarks_viewer'),
+                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''',
+                         className='app__remarks_viewer')
+            #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
+            #                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
             id='div-3dviewer'))], className='app__container_3dmolviewer'),
-            #style={'vertical-align': 'center', 'width': '30%', 'display':
-            #    'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
+        # style={'vertical-align': 'center', 'width': '30%', 'display':
+        #    'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
 
     ],
         className='app-body')
@@ -160,8 +158,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
          dash.dependencies.Input('colorscale', 'value'),
-         dash.dependencies.Input('marker_opacity','value'),])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
+         dash.dependencies.Input('marker_opacity', 'value'), ])
+    def update_graph(x_axis, y_axis, marker_size, marker_size_limits, marker_color, marker_color_limits, colorscale,
+                     marker_opacity):
         color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         color_span = np.abs(np.max(color_new) - np.min(color_new))
         color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
