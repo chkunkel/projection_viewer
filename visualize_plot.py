@@ -61,7 +61,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     app = dash.Dash(__name__)
 
     app.layout = html.Div(children=[
-        html.Div(children=title, className='what-is'),
+        html.H3(children=title),
 
         html.Div([
             html.Span(["x-axis", html.Br(),
@@ -103,48 +103,29 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                            min=1, max=100, step=0.1, value=[5, 50],
                            marks={s: s for s in range(0, 101, 10)},
                            allowCross=False,
-                       )], className='app__slider', style={'width': '35%', 'display': 'inline-block'}),
+                       )], className='app__slider'),
             html.Span(["marker-color-limits",
                        dcc.RangeSlider(
                            id='marker_color_limits',
                            min=0, max=100, step=0.1, value=[0, 100],
                            marks={p: '{}%'.format(p) for p in range(0, 101, 10)},
                            allowCross=False,
-                       )], className='app__slider', style={'width': '35%', 'display': 'inline-block'}),
+                       )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ], className="app__slider"),
+        ],className='app_pickers'),
 
+
+        # placeholder by graph, now filled in by callback on startup
         html.Div([
             dcc.Graph(
                 id='graph',
                 figure={
-                    'data': [
-                        {'x': x_default,
-                         'y': y_default,
-                         'mode': 'markers',
-                         'marker': {
-                             'color': color_default,
-                             'colorscale': "Viridis",
-                             'colorbar': {'title': colorbar_title},
-                             'size': size_default,
-                             'line': {
-                                 'color': 'rgb(0, 116, 217)',  # todo: implement border color option
-                                 'width': 0.5
-                             }, },
-
-                         'name': 'TODO'},
-                    ],
-                    'layout': {
-                        'xaxis': {'zeroline': False},
-                        'yaxis': {'zeroline': False},
-                        # 'title': 'Data Visualization',
-                        'height': height_graph,
-                        'hovermode': 'closest'
-                    }
+                    'data': [], 'layout': {}
                 }
             )
         ], style={'width': '68%', 'display': 'inline-block'}),
+
 
         html.Div([dcc.Loading(html.Div([
             dash_bio.Molecule3dViewer(
@@ -152,16 +133,15 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 styles=default_style,
                 shapes=shapes,
                 modelData=json.loads(helpers.ase2json(atoms[0]))),
-            html.Div(id='molecule3d-output')
+            dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.  
+                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''', className='app__remarks_viewer')
+#            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>', 
+#                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
             id='div-3dviewer'))], className='container bg-white p-0',
             style={'vertical-align': 'center', 'width': '30%', 'display':
                 'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
 
-        html.Div([
-        '''Remarks: <br>
-        Gray wireframe: SOAP cutoff radius around selected atom. <br>
-        Green sphere: Marker for selected atom.'''], className='app__remarks'),
     ],
         className='app-body')
 
@@ -217,11 +197,12 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             name='TODO',
         )],
             'layout': go.Layout(height=height_graph,
+            
                                 hovermode='closest',
                                 #         title = 'Data Visualization'
-                                xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside',
+                                xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True, 'title': dataframe.columns.tolist()[x_axis]},
-                                yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside',
+                                yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True, 'title': dataframe.columns.tolist()[y_axis]}
                                 )
         }
