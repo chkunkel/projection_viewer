@@ -5,9 +5,12 @@ body {
 }
 
 h3 {
-    font-size: 20px;
+    font-size: 18px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 0px;
+    padding-bottom: 0px; 
     letter-spacing: 0.23rem;
-    padding: 20px 20px 20px 20x;
 }
 
 p {
@@ -47,6 +50,7 @@ p {
   display: inline-block;
   border: solid;
   border-width: 1px;
+  vertical-align: top;
 }
 
 

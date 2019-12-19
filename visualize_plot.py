@@ -16,7 +16,7 @@ import plotly.graph_objs as go
 import helpers
 
 
-def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, marker_radius, height_graph):
+def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, marker_radius, height_graph, width_graph):
     if config_filename != 'None':
         # read config if given
         config = configparser.ConfigParser()
@@ -27,6 +27,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         soap_cutoff_radius = config['Basic']['soap_cutoff_radius']
         marker_radius = config['Basic']['marker_radius']
         height_graph = int(config['Basic']['height_graph'])
+        width_graph = int(config['Basic']['height_graph'])
 
     # read atoms
     atoms = ase.io.read(extended_xyz_file, ':')
@@ -84,17 +85,17 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
                            value=3, style=style_dropdown)], className='app__dropdown'),
-            html.Span([html.I('colorscale'), html.Br(),
-                       dcc.Input(
-                           id='colorscale',
-                           type='text',
-                           placeholder='colormap name')], className='app__dropdown'),
-            html.Span([html.I('marker-opacity'), html.Br(),
+            html.Span(['marker-opacity', html.Br(),
                        dcc.Input(
                            id='marker_opacity',
                            type='text',
                            placeholder='marker_opacity')], className='app__dropdown'),
-        ], className="app__controls"),
+            html.Span(['colorscale', html.Br(),
+                       dcc.Input(
+                           id='colorscale',
+                           type='text',
+                           placeholder='colormap name')], className='app__dropdown'),
+       ], className="app__controls"),
 
         html.Div([
             html.Span(["marker-size-limits",
@@ -138,9 +139,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
 #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>', 
 #                     id='molecule3d-output', className='app__remarks_viewer'),
         ],
-            id='div-3dviewer'))], className='app__container_3dmolviewer'),
-            #style={'vertical-align': 'center', 'width': '30%', 'display':
-            #    'inline-block', 'border-style': 'solid', 'border-width': '1px', 'height': height_graph}),
+            id='div-3dviewer'))], className='app__container_3dmolviewer',
+            style={'height': height_graph, 'width_graph': width_graph}),
 
     ],
         className='app-body')
@@ -285,7 +285,8 @@ if __name__ == "__main__":
     parser.add_argument('--fxyz', type=str, help='Location of xyz file')
     parser.add_argument('--config-file', type=str, default='None',
                         help='Config file that configures and overwrites every other argument')
-    parser.add_argument('--height', type=int, default=530, help='Adjustment of graph height for small or large screens')
+    parser.add_argument('--width', type=int, default=600, help='Adjustment of graph width for small or large screens')
+    parser.add_argument('--height', type=int, default=600, help='Adjustment of graph height for small or large screens')
     parser.add_argument('--mode', type=str, default='molecular',
                         help='Mode of projection ([molecular], [atomic]), "compound" coming soon')
     parser.add_argument('--title', type=str, default='Example', help='Titile of the plot')
@@ -304,6 +305,7 @@ if __name__ == "__main__":
 
     sys.exit(main(extended_xyz_file=args.fxyz,
                   height_graph=args.height,
+                  width_graph=args.width,
                   mode=args.mode,
                   title=args.title,
                   config_filename=args.config_file,
