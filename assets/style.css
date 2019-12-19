@@ -38,12 +38,12 @@ p {
 }
 
 .app__container_scatter {
-    width: 68%;
+    width: 69%;
     display: inline-block;
 }
 
 .app__container_3dmolviewer {
-    width: 30%;
+    width: 25%;
     display: inline-block;
     border: solid;
     border-width: 1px;
@@ -84,7 +84,7 @@ p {
     padding-top: 0px;
     padding-bottom: 40px;
     font-size: 10px;
-    width: 30%;
+    width: 25%;
     display: inline-block;
 }
 

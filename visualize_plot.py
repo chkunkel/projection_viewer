@@ -5,6 +5,7 @@ import configparser
 import json
 import sys
 import copy
+from copy import deepcopy
 
 import ase.io
 import dash
@@ -16,8 +17,11 @@ import plotly.graph_objs as go
 
 import helpers
 
+callback_hoverdict_global = [] # necessary global variable
 
 def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, marker_radius, height_graph, width_graph):
+    global callback_hoverdict_global
+
     if config_filename != 'None':
         # read config if given
         config = configparser.ConfigParser()
@@ -32,7 +36,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
 
     # read atoms
     atoms = ase.io.read(extended_xyz_file, ':')
-    [atoms[i].set_pbc(False) for i in range(len(atoms))]
+    #[atoms[i].set_pbc(False) for i in range(len(atoms))]
 
     # Setup of the dataframes and atom/molecular infos for the 3D-Viewer
     shapes = []
@@ -43,17 +47,12 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         atomic_numbers = dataframe['atomic_numbers']
         dataframe.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
 
-    print('New Dataframe\n', dataframe.head())
 
     # add a periodic box if needed
     shapes += helpers.get_periodic_box_shape_dict(atoms[0])
 
-    # CONSTANT graph styles
-    const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
-    const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
-
-    # Initial data and styles for the graph and 3D viewer
-    viewer_3d_default_style = helpers.return_style(atoms[0], default=0)
+    # Initial data for the graph and 3D viewer
+    default_style = helpers.return_style(atoms[0], default=0)
     x_default = dataframe[dataframe.columns.tolist()[0]].tolist()
     y_default = dataframe[dataframe.columns.tolist()[1]].tolist()
     size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
@@ -61,6 +60,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     size_default = list(size_default - min(size_default))  # cant be smaller than 0
     color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
+    style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
 
     # Setup of app
     app = dash.Dash(__name__)
@@ -73,33 +73,34 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        dcc.Dropdown(
                            id='x-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=0, style=const_style_dropdown)], className='app__dropdown'),
+                           value=0, style=style_dropdown)], className='app__dropdown'),
             html.Span(['y-axis',
                        dcc.Dropdown(
                            id='y-axis',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=1, style=const_style_dropdown)], className='app__dropdown'),
+                           value=1, style=style_dropdown)], className='app__dropdown'),
             html.Span(["marker-size",
                        dcc.Dropdown(
                            id='marker_size',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=2, style=const_style_dropdown)], className='app__dropdown'),
+                           value=2, style=style_dropdown)], className='app__dropdown'),
             html.Span(["marker-color",
                        dcc.Dropdown(
                            id='marker_color',
                            options=[{'label': '{}'.format(l), 'value': i} for i, l in enumerate(dataframe.columns)],
-                           value=3, style=const_style_dropdown)], className='app__dropdown'),
+                           value=3, style=style_dropdown)], className='app__dropdown'),
             html.Span(['marker-opacity', html.Br(),
                        dcc.Input(
                            id='marker_opacity',
                            type='text',
-                           placeholder='marker_opacity')], className='app__dropdown'),
+                           placeholder='marker opacity (0 to 1)')], className='app__dropdown'),
             html.Span(['colorscale', html.Br(),
                        dcc.Input(
                            id='colorscale',
                            type='text',
                            placeholder='colormap name')], className='app__dropdown'),
        ], className="app__controls"),
+
 
         html.Div([
             html.Span(["marker-size-range",
@@ -125,7 +126,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ], className='app__controls'),
+        ],className='app__controls'),
+
 
         # placeholder by graph, now filled in by callback on startup
         html.Div([
@@ -137,23 +139,26 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             )
         ], className='app__container_scatter'),
 
-        html.Div([dcc.Loading(html.Div([
-            dash_bio.Molecule3dViewer(
-                id='3d-viewer',
-                styles=viewer_3d_default_style,
-                shapes=shapes,
-                modelData=json.loads(helpers.ase2json(atoms[0]))),
-            dcc.Markdown('''**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius.
-                            **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''',
-                         className='app__remarks_viewer')
-            #            html.Div('<b>Gray wireframe:</b> SOAP cutoff radius. <b>Green sphere:</b> Selected atom marker. <br> <b>Navigation:</b>',
-            #                     id='molecule3d-output', className='app__remarks_viewer'),
-        ],
-            id='div-3dviewer'))], className='app__container_3dmolviewer',
-         style={'height': height_graph, 'width_graph': width_graph}),
+
+        html.Div([
+                html.Span(['Periodic repetition of structure: ', dcc.Input(id='periodic_repetition_structure', type='text', placeholder='(0,1) (0,1) (0,1)')], className='app__remarks_viewer'),
+                dcc.Markdown('''
+                            **Axis:**  &nbsp;&nbsp; x : red  &nbsp;&nbsp; y : green &nbsp;&nbsp; z : blue   
+                            **Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff.  
+                            **Mouse-Navigation:**  &nbsp;&nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* Zoom''', className='app__remarks_viewer'),
+                dcc.Loading(html.Div([
+                dash_bio.Molecule3dViewer(
+                    id='3d-viewer',
+                    styles=default_style,
+                    shapes=shapes,
+                    modelData=json.loads(helpers.ase2json(atoms[0])))], id='div-3dviewer')),
+                   ], className='app__container_3dmolviewer', style={'height': height_graph, 'width_graph': width_graph}),
+
 
     ],
         className='app-body')
+
+
 
     # Callbacks that update the viewer
 
@@ -167,20 +172,29 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('marker_color', 'value'),
          dash.dependencies.Input('marker_color_limits', 'value'),
          dash.dependencies.Input('colorscale', 'value'),
-         dash.dependencies.Input('marker_opacity', 'value'), ])
-    def update_graph(x_axis, y_axis, marker_size, marker_size_range, marker_size_limits, marker_color, marker_color_limits, colorscale,
-                     marker_opacity):
+         dash.dependencies.Input('marker_opacity','value'),])
+    def update_graph(x_axis, y_axis, marker_size, marker_size_range, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
+        color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         # color limits
         color_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_color]])
         color_span = np.abs(np.max(color_new) - np.min(color_new))
+        color_new_lower = np.min(color_new) + color_span / 100. * marker_color_limits[0]
+        color_new_upper = np.min(color_new) + color_span / 100. * marker_color_limits[1]
+        indices_in_limits = np.asarray(
+            [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
+        
         color_new_min = np.min(color_new)
         color_new_max = np.max(color_new)
         color_new_lower = color_new_min + color_span / 100. * marker_color_limits[0]
         color_new_upper = color_new_min + color_span / 100. * marker_color_limits[1]
 
-        # opacity
-        if marker_opacity == None:
-            marker_opacity = 1.0
+        size_new = dataframe[dataframe.columns.tolist()[marker_size]].tolist()
+        size_new = np.array(size_new)
+        size_new = size_new - min(size_new)  # cant be smaller than 0
+        
+        #opacity
+        if marker_opacity==None: 
+            marker_opacity=1.0
         else:
             try:
                 # convert to float here and check if value was valid
@@ -190,7 +204,6 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             except ValueError:
                 print('Marker opacity set: {} ; Invalid, set to 1.0 be default.'.format(marker_opacity))
                 marker_opacity = 1.0
-
         size_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_size]].tolist())
         size_new = np.array(size_new)
         size_new = size_new - np.min(size_new)  # cant be smaller than 0
@@ -209,6 +222,13 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
         except:
             print('Error in scaling marker sizes. Using `30` for all data points instead.')
             size_new = np.asarray([30] * len(size_new))
+        size_new_tmp = []
+        for idx, size_i in enumerate(size_new):
+            if idx in indices_in_limits:
+                size_new_tmp.append(size_i)
+            else:
+                size_new_tmp.append(0)
+        size_new = np.asarray(size_new_tmp)
 
         return {'data': [go.Scatter(
             x=dataframe[dataframe.columns.tolist()[x_axis]].tolist(),
@@ -219,7 +239,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
                 'size': size_new,
                 'colorbar': {'title': dataframe.columns.tolist()[marker_color]},
-                'opacity': marker_opacity,
+                'opacity': float(marker_opacity),
                 'cmin' : color_new_lower,
                 'cmax' : color_new_upper,
                 'line': {
@@ -230,7 +250,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             name='TODO',
         )],
             'layout': go.Layout(height=height_graph,
-
+            
                                 hovermode='closest',
                                 #         title = 'Data Visualization'
                                 xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
@@ -240,68 +260,95 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                                 )
         }
 
+
     def _get_new_sizes(value, value_range, size_range):
         """Map ``value`` to a range within ``size_range`` in a linear fashion."""
         slope = (size_range[1] - size_range[0]) / float(value_range[1]- value_range[0])
         return size_range[0] + slope * (value - value_range[0])
 
-    def return_modelData_atoms(callback_hoverdict):
-        atoms_id = callback_hoverdict["points"][0]["pointNumber"]
-        if mode == "atomic":
-            atoms_id = system_ids[atoms_id]
-        return json.loads(helpers.ase2json(atoms[atoms_id]))
-
-    def return_style_callback(callback_hoverdict, default=-1):
-        atoms_id = callback_hoverdict["points"][0]["pointNumber"]
-        if mode == "atomic":
-            atoms_id = system_ids[atoms_id]
-        if default == -1:
-            atoms_id = atoms[atoms_id]
-        else:
-            atoms_id = atoms[default]
-        return helpers.return_style(atoms_id, default=-1)
-
-    def return_shape_callback(callback_hoverdict, default=-1):
-        atoms_id = callback_hoverdict["points"][0]["pointNumber"]
-        callback_id = callback_hoverdict["points"][0]["pointNumber"]
-        if mode == "atomic":
-            atoms_id = system_ids[atoms_id]
-        if default == -1:
-            atoms_id = atoms[atoms_id]
-        else:
-            atoms_id = atoms[default]
-
-        shapes = []
-        if mode == 'atomic':
-            # displaced by CoM as well as the whole viewer
-            # I now just moved the box and the marker, cause this then directly works in both modes
-            pos = atoms_id.get_positions()[atomic_numbers[callback_id]] - atoms_id.get_center_of_mass()
-            print(atoms_id, atomic_numbers[callback_id], pos)
-            print(callback_id, atomic_numbers[callback_id])
+    def return_shape_callback(atoms_current, pos_marker=None, default=-1, shift_cell=np.array([0.,0.,0.])):
+        
+        if isinstance(pos_marker, np.ndarray) or isinstance(pos_marker, list):
             shapes = [{'type': 'Sphere', "color": "gray",
-                       "center": {'x': pos[0], 'y': pos[1], 'z': pos[2]},
+                       "center": {'x': pos_marker[0], 'y': pos_marker[1], 'z': pos_marker[2]},
                        "radius": soap_cutoff_radius, 'wireframe': True},
                       {'type': 'Sphere', "color": "green",
-                       "center": {'x': pos[0], 'y': pos[1], 'z': pos[2]},
+                       "center": {'x': pos_marker[0], 'y': pos_marker[1], 'z': pos_marker[2]},
                        "radius": marker_radius}
                       ]
-        shapes += helpers.get_periodic_box_shape_dict(atoms_id)
+        shapes += helpers.get_periodic_box_shape_dict(atoms_current, shift_cell)
         return shapes
+
+
+
+    def return_modelData_atoms(atoms_id, periodic_repetition_str='(0,1) (0,1) (0,1)'):
+
+        if mode == "atomic":
+            atoms_current = atoms[system_ids[atoms_id]]
+            pos_marker = atoms_current.get_positions()[atomic_numbers[atoms_id]]
+        else:
+            atoms_current = atoms[atoms_id]
+            pos_marker=None
+
+        shift_cell=np.array([0.,0.,0.])
+        cell = atoms_current.get_cell() 
+
+        if periodic_repetition_str!='(0,1) (0,1) (0,1)' and np.sum(atoms_current.get_pbc())>0:
+           
+            x_rep, y_rep, z_rep = periodic_repetition_str.split(' ')
+            x_rep = [int(x) for x in x_rep[1:-1].split(',')]
+            x_multi = x_rep[1]-x_rep[0]
+            y_rep = [int(y) for y in y_rep[1:-1].split(',')]
+            y_multi = y_rep[1]-y_rep[0]
+            z_rep = [int(z) for z in z_rep[1:-1].split(',')]
+            z_multi = z_rep[1]-z_rep[0]
+         
+            #shift_cell = atoms_current.get_center_of_mass()
+            atoms_current = deepcopy(atoms_current)*np.array([x_multi, y_multi, z_multi])
+
+            # shift correctly, we need to correct for the viewers automatic com centering
+            new_positions = np.array([ x+(cell[0]*x_rep[0]+cell[1]*y_rep[0]+cell[2]*z_rep[0]) for x in atoms_current.get_positions()])
+            atoms_current.set_positions(new_positions)
+            atoms_current.set_cell(cell)
+
+        shapes = return_shape_callback(atoms_current, pos_marker, shift_cell=shift_cell)
+
+        return json.loads( helpers.ase2json( atoms_current ) ), shapes, atoms_current
+
 
     @app.callback(
         dash.dependencies.Output('div-3dviewer', 'children'),
-        [dash.dependencies.Input('graph', 'clickData')])
-    def update_3dviewer(callback_hoverdict, default=-1):
-        print(callback_hoverdict)
+        [dash.dependencies.Input('graph', 'clickData'), 
+         dash.dependencies.Input('periodic_repetition_structure','value')])
+    def update_3dviewer(callback_hoverdict, periodic_repetition_structure, default=-1):
+        
+        global callback_hoverdict_global
 
-        shapes = return_shape_callback(callback_hoverdict)
-        styles = return_style_callback(callback_hoverdict)
-        modelData = return_modelData_atoms(callback_hoverdict)
+        run_update=True
 
+        if periodic_repetition_structure == None:
+            periodic_repetition_structure='(0,1) (0,1) (0,1)' 
+        elif not periodic_repetition_structure.count('(')==3 or not periodic_repetition_structure.count(')')==3:
+            run_update=False
+              
+        if not run_update: raise Exception('no update required')
+        
+        if not callback_hoverdict==None: 
+            callback_hoverdict_global = callback_hoverdict
+        
+        if callback_hoverdict_global==[]: atoms_id = 0
+        else:
+            atoms_id = callback_hoverdict_global["points"][0]["pointNumber"] 
+        
+        modelData, shapes, atoms_current = return_modelData_atoms(atoms_id, periodic_repetition_str=periodic_repetition_structure)
+        styles = helpers.return_style(atoms_current)
+         
         view = dash_bio.Molecule3dViewer(
-            styles=styles,
-            shapes=shapes,
-            modelData=modelData)
+                    id='3d-viewer',
+                    styles=styles,
+                    shapes=shapes,
+                    modelData= modelData)#modelData) #])),
+
         return view
 
     app.run_server(debug=False, port=9999)

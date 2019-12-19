@@ -5,12 +5,12 @@ from ase.data.colors import jmol_colors
 
 
 def get_features_molecular(feature, atoms):
-    """Returns a list with the molecular feature for all geometries in `atoms`"""
+    "Returns a list with the molecular feature for all geometries in `atoms`"
     return [atoms_i.info[feature] for atoms_i in atoms]
 
 
 def get_features_atomic(feature, atoms):
-    """Returns a list with the atomic features for all geometries in `atoms`"""
+    "Returns a list with the atomic features for all geometries in `atoms`"
     features = []
     for atoms_i in atoms:
         features.extend(
@@ -19,7 +19,7 @@ def get_features_atomic(feature, atoms):
 
 
 def get_atomic_numbers(atoms):
-    """Returns a list with the atomic numbers for all geometries in `atoms`"""
+    "Returns a list with the atomic numbers for all geometries in `atoms`"
     atomic_numbers = []
     for atoms_i in atoms:
         atomic_numbers.extend(
@@ -28,12 +28,7 @@ def get_atomic_numbers(atoms):
 
 
 def ase2json(atoms_ase):
-    """
-    Converts ase.Atoms to JSON for Molecule3dViewer
-
-    Note: translates molecule by CoM, so everything else needs to be translated in the viewer as well!
-    """
-    atoms_ase.translate(atoms_ase.get_center_of_mass() * -1)
+    #atoms_ase.translate(atoms_ase.get_center_of_mass() * -1)
     json_str = '{"atoms": ['
     for i, pos in enumerate(atoms_ase.get_positions()):
         elem = str(atoms_ase.get_chemical_symbols()[i])
@@ -61,12 +56,12 @@ def return_style(atoms_id, default=-1):
 
 
 # check whether a periodic box is needed to be drawn, and return it as a shape if needed
-def get_periodic_box_shape_dict(atoms_ase):
-    # so far we only show a box when it is 3d periodic
-    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return []
+def get_periodic_box_shape_dict(atoms_ase, shift_cell=np.array([0.,0.,0.])):
 
-    # point0 = np.array([0.0, 0.0, 0.0])
-    point0 = -atoms_ase.get_center_of_mass()
+    # so far we only show a box when it is 3d periodic
+    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return [] # or not isinstance(cell, np.ndarray): return []
+
+    point0 = np.array([0.0, 0.0, 0.0])
     lattice_vectors = atoms_ase.get_cell()
     point1 = list(point0 + lattice_vectors[0])
     point2 = list(point0 + lattice_vectors[1])
@@ -78,13 +73,16 @@ def get_periodic_box_shape_dict(atoms_ase):
     point0 = list(point0)
 
     shapes = []
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point1[0], "y": point1[1], "z": point1[2]}})
+    # x
     shapes.append({"type": "Cylinder", "color": get_hex_color([255, 0, 0]),
                    "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point2[0], "y": point2[1], "z": point2[2]}})
+                   "end": {"x": point1[0], "y": point1[1], "z": point1[2]}})
+    # y 
     shapes.append({"type": "Cylinder", "color": get_hex_color([0, 255, 0]),
+                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+                   "end": {"x": point2[0], "y": point2[1], "z": point2[2]}})
+    # z
+    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
                    "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
                    "end": {"x": point3[0], "y": point3[1], "z": point3[2]}})
 
@@ -148,13 +146,11 @@ def ase2xyz(atoms):
         a_str += atom[0] + " " + " ".join([str(x) for x in atom[1]]) + "\n"
     return a_str
 
-
 # rm
 # import json
 # import six.moves.urllib.request as urlreq
 # from six import PY3
-# model_data = urlreq.urlopen('https://raw.githubusercontent.com/Autodesk/molecule-3d-for-react/master/example/js/'
-#                             'bipyridine_model_data.js').read()
+# model_data = urlreq.urlopen('https://raw.githubusercontent.com/Autodesk/molecule-3d-for-react/master/example/js/bipyridine_model_data.js').read()
 # model_data=str(model_data)
 # model_data = model_data.replace("\\n", """""").split("default")[1].split(";")[0]
 # print(model_data)
@@ -165,9 +161,7 @@ def ase2xyz(atoms):
 #    'mol3d/model_data.js'
 
 
-# {"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H",
-# "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177],
-# "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
+# {"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177], "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
 def build_dataframe_features(atoms, mode='molecular'):
     if mode == 'atomic':
         keys = atoms[0].arrays.keys()
