@@ -1,3 +1,6 @@
+import json
+
+import ase
 import numpy as np
 import pandas as pd
 from ase.data import covalent_radii
@@ -41,22 +44,38 @@ def ase2json(atoms_ase):
             i) + '","element":"' + elem + '", "positions":' + str(list(pos)) + '}'
         if not i == len(atoms_ase) - 1:
             json_str += ","
-    json_str += '], "bonds":[]}'
+    json_str += '], "bonds": [], "pbc": {}, "cell": {}}}'.format(str(atoms_ase.get_pbc().tolist()).lower(),
+                                                                 atoms_ase.get_cell().tolist())
 
     return json_str
+
+
+def json2atoms(at_json):
+    at_decoded = json.loads(at_json)
+
+    symbols = []
+    pos_list = []
+
+    for item in at_decoded['atoms']:
+        symbols.append(item['name'])
+        pos_list.append(item['positions'])
+
+    ase_at = ase.Atoms(symbols=symbols, positions=pos_list, cell=at_decoded['cell'], pbc=at_decoded['pbc'])
+
+    return ase_at
 
 
 def get_hex_color(c_rgb):
     return '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
 
 
-def return_style(atoms_id, default=-1):
+def return_atom_list_style_for_3d_view(ase_atoms):
     dict_style = {}
-    for i, at in enumerate(atoms_id):
-        hex_color = get_hex_color([int(x * 255) for x in jmol_colors[atoms_id.get_atomic_numbers()[i]]])
+    for i, at in enumerate(ase_atoms):
+        hex_color = get_hex_color([int(x * 255) for x in jmol_colors[ase_atoms.get_atomic_numbers()[i]]])
         # hex_color = '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
         dict_style[str(i)] = {"color": hex_color, "visualization_type": "sphere",
-                              "radius": covalent_radii[atoms_id.get_atomic_numbers()[i]]}
+                              "radius": covalent_radii[ase_atoms.get_atomic_numbers()[i]]}
     return dict_style
 
 
@@ -206,4 +225,80 @@ def build_dataframe_features(atoms, mode='molecular'):
                 keys_expanded[k] = [x.info[k] for x in atoms]
 
     df = pd.DataFrame(data=keys_expanded)
+
     return df
+
+
+def _get_new_sizes(ref_values, size_range):
+    """Map ``ref_values`` to a range within ``size_range`` in a linear fashion."""
+    ref_values = np.asarray(ref_values)
+    ref_min, ref_max = np.min(ref_values), np.max(ref_values)
+    slope = (size_range[1] - size_range[0]) / float(ref_max - ref_min)
+    return size_range[0] + slope * (ref_values - ref_min)
+
+
+def process_marker_opacity_value(marker_opacity_value):
+    """
+    Process string input of marker_opacity_value
+
+    :param marker_opacity_value: str
+    :return:
+    """
+
+    if marker_opacity_value == None:
+        marker_opacity_value = 1.0
+    else:
+        try:
+            # convert to float here and check if value was valid
+            marker_opacity_value = float(marker_opacity_value)
+            if marker_opacity_value < 0. or marker_opacity_value > 1.:
+                raise ValueError
+        except ValueError:
+            print('Marker opacity set: {} ; Invalid, set to 1.0 be default.'.format(marker_opacity_value))
+            marker_opacity_value = 1.0
+
+    return marker_opacity_value
+
+
+def get_soap_spheres(data, at, atom_in_conifg_id):
+    if data['mode'] != 'atomic':
+        return []
+
+    # displaced by CoM as well as the whole viewer
+    # I now just moved the box and the marker, cause at_json then directly works in both modes
+    pos = at.get_positions()[atom_in_conifg_id] - at.get_center_of_mass()
+    pos_dict = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
+
+    shapes = [{'type': 'Sphere', "color": "gray",
+               "center": pos_dict,
+               "radius": data['soap_cutoff_radius'], 'wireframe': True},
+              {'type': 'Sphere', "color": "green",
+               "center": pos_dict,
+               "radius": data['marker_radius']}
+              ]
+    return shapes
+
+
+def construct_3d_view_data(data, point_index, skip_soap=False):
+    # get the ids to specify the atom in the atoms_list
+    config_id = data['system_index'][point_index]
+    atom_in_conifg_id = data['atom_index_in_systems'][point_index]
+
+    at_json = data['atoms_list_json'][config_id]
+    at = json2atoms(at_json)
+
+    # soap spheres and cell frame
+    shapes = []
+    if not skip_soap:
+        shapes += get_soap_spheres(data, at, atom_in_conifg_id)
+    shapes += get_periodic_box_shape_dict(at)
+
+    # colour and size of the atoms in the viewer
+    styles = return_atom_list_style_for_3d_view(at)
+
+    # model data: the atoms in the format that is understood by the 3D viewer
+    # model_data = json.loads(ase2json(at))
+    model_data = json.loads(ase2json(at))
+
+    viewer_data = dict(styles=styles, shapes=shapes, modelData=model_data)
+    return viewer_data
