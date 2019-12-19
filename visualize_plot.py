@@ -126,8 +126,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        )], className='app__slider'),
             html.Br(),
             html.Br(),
-        ],className='app__controls'),
-
+        ], className='app__controls'),
+       
+ 
 
         # placeholder by graph, now filled in by callback on startup
         html.Div([
@@ -155,7 +156,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                    ], className='app__container_3dmolviewer', style={'height': height_graph, 'width_graph': width_graph}),
 
 
-    ],
+        ],
         className='app-body')
 
 
