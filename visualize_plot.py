@@ -52,7 +52,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
 
     # Initial data and styles for the graph and 3D viewer
-    viewer_3d_default_style = helpers.return_style(atoms[0], default=0)
+    viewer_3d_default_style = helpers.return_atom_list_style_for_3d_view(atoms[0], default=0)
     x_default = dataframe[dataframe.columns.tolist()[0]].tolist()
     y_default = dataframe[dataframe.columns.tolist()[1]].tolist()
     size_default = dataframe[dataframe.columns.tolist()[2]].tolist()
@@ -245,7 +245,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             atoms_id = atoms[atoms_id]
         else:
             atoms_id = atoms[default]
-        return helpers.return_style(atoms_id, default=-1)
+        return helpers.return_atom_list_style_for_3d_view(atoms_id)
 
     def return_shape_callback(callback_hoverdict, default=-1):
         atoms_id = callback_hoverdict["points"][0]["pointNumber"]

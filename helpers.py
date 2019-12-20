@@ -233,12 +233,10 @@ def build_dataframe_features(atoms, mode='molecular'):
     return df
 
 
-def _get_new_sizes(ref_values, size_range):
-    """Map ``ref_values`` to a range within ``size_range`` in a linear fashion."""
-    ref_values = np.asarray(ref_values)
-    ref_min, ref_max = np.min(ref_values), np.max(ref_values)
-    slope = (size_range[1] - size_range[0]) / float(ref_max - ref_min)
-    return size_range[0] + slope * (ref_values - ref_min)
+def get_new_sizes(value, value_range, size_range):
+    """Map ``value`` to a range within ``size_range`` in a linear fashion."""
+    slope = (size_range[1] - size_range[0]) / float(value_range[1] - value_range[0])
+    return size_range[0] + slope * (value - value_range[0])
 
 
 def process_marker_opacity_value(marker_opacity_value):
@@ -377,12 +375,20 @@ def initialise_application(data):
                               html.Div(className='app__controls', children=[
                                   # Slider: marker size limits s
                                   html.Span(className='app__slider',
-                                            children=['marker size limits',
-                                                      dcc.RangeSlider(id='slider_marker_size_limits', min=1, max=100,
+                                            children=['marker size range',
+                                                      dcc.RangeSlider(id='slider_marker_size_range', min=1, max=100,
                                                                       step=0.1, value=[5, 50],
                                                                       marks={s: str(s) for s in range(0, 101, 10)},
                                                                       allowCross=False)]),
-
+                                  # New slider for marker size limits
+                                  html.Span(className='app__slider',
+                                            children=["marker-size-limits",
+                                                      dcc.RangeSlider(
+                                                          id='slider_marker_size_limits',
+                                                          min=0, max=100, step=0.1, value=[0, 100],
+                                                          marks={p: '{}%'.format(p) for p in range(0, 101, 10)},
+                                                          allowCross=False, )], ),
+                                  # Slider: marker colour limits
                                   html.Span(className='app__slider',
                                             children=["marker colour limits",
                                                       dcc.RangeSlider(id='slider_marker_color_limits', min=0, max=100,

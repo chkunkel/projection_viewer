@@ -1,5 +1,6 @@
 #!python3
 
+import copy
 import sys
 
 import dash_bio
@@ -34,42 +35,52 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
                    Input('dropdown-y-axis', 'value'),
                    Input('dropdown-marker-size', 'value'),
                    Input('dropdown-marker-colour', 'value'),
+                   Input('slider_marker_size_range', 'value'),
                    Input('slider_marker_size_limits', 'value'),
                    Input('slider_marker_color_limits', 'value'),
                    Input('input-marker-opacity', 'value'),
                    Input('input-colourscale', 'value')])
-    def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key, marker_size_limits,
-                     marker_colour_limits, marker_opacity_value, colourscale_name):
+    def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key, marker_size_range,
+                     marker_size_limits, marker_colour_limits, marker_opacity_value, colourscale_name):
 
         # hack it out from there for now
         dataframe = pd.read_json(data['df_json'])
 
-        color_new = dataframe[dataframe.columns.tolist()[marker_colour_key]]
-        color_span = np.abs(np.max(color_new) - np.min(color_new))
-        color_new_lower = np.min(color_new) + color_span / 100. * marker_colour_limits[0]
-        color_new_upper = np.min(color_new) + color_span / 100. * marker_colour_limits[1]
-        indices_in_limits = np.asarray(
-            [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
+        # todo: add context action to decide what to update if too slow
 
-        size_new = dataframe[dataframe.columns.tolist()[marker_size_key]].tolist()
-        size_new = np.array(size_new)
-        size_new = size_new - min(size_new)  # cant be smaller than 0
+        # color limits
+        color_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_colour_key]])
+        color_span = np.abs(np.max(color_new) - np.min(color_new))
+        color_new_min = np.min(color_new)
+        color_new_lower = color_new_min + color_span / 100. * marker_colour_limits[0]
+        color_new_upper = color_new_min + color_span / 100. * marker_colour_limits[1]
+        # indices_in_limits = np.asarray(
+        #     [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
 
         # marker opacity value to float
         marker_opacity_value = helpers.process_marker_opacity_value(marker_opacity_value)
 
+        # marker size
+        size_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_size_key]].tolist())  # fixme this is messy
+        size_new = np.array(size_new)
+        size_new = size_new - np.min(size_new)  # cant be smaller than 0
+        size_new_range = np.max(size_new)
+        size_new_lower = size_new_range / 100. * marker_size_limits[0]
+        size_new_upper = size_new_range / 100. * marker_size_limits[1]
+
         try:
-            size_new = helpers._get_new_sizes(size_new, marker_size_limits)
+            # setting linear scale between the limits and flat below and above
+            for idx, size_new_i in enumerate(size_new):
+                if size_new_i < size_new_lower:
+                    size_new[idx] = marker_size_range[0]
+                elif size_new_i > size_new_upper:
+                    size_new[idx] = marker_size_range[1]
+                else:
+                    size_new[idx] = helpers.get_new_sizes(size_new_i, [size_new_lower, size_new_upper],
+                                                          marker_size_range)
         except:
             print('Error in scaling marker sizes. Using `30` for all data points instead.')
             size_new = np.asarray([30] * len(size_new))
-        size_new_tmp = []
-        for idx, size_i in enumerate(size_new):
-            if idx in indices_in_limits:
-                size_new_tmp.append(size_i)
-            else:
-                size_new_tmp.append(0)
-        size_new = np.asarray(size_new_tmp)
 
         graph_data = {
             'data': [go.Scatter(
@@ -82,6 +93,8 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
                     'size': size_new,
                     'colorbar': {'title': dataframe.columns.tolist()[marker_colour_key]},
                     'opacity': marker_opacity_value,
+                    'cmin': color_new_lower,
+                    'cmax': color_new_upper,
                     'line': {
                         'color': 'rgb(0, 116, 217)',
                         'width': 0.5
