@@ -143,7 +143,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 
                 print('DEBUG update 3d viewer with dict: \n\t{}'.format(hover_data_dict))
                 try:
-                    point_index = hover_data_dict['pointNumber']
+                    point_index = hover_data_dict['points'][0]['pointNumber']
                 except TypeError:
                     point_index = 0
         else:
@@ -180,4 +180,6 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 if __name__ == "__main__":
     # parse arguments
 
-    sys.exit(main('ASAP-pca-d4-new.xyz', 'atomic'))
+    sys.exit(
+        main('/home/tks32/work/projection_viewer/examples/methane_collision/test_w_abcd/ASAP-pca-d4-new.xyz', 'atomic'))
+

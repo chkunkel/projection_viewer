@@ -9,6 +9,7 @@ import pandas as pd
 from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
 from dash import Dash
+import dash_bio
 
 
 def get_features_molecular(feature, atoms):
@@ -55,7 +56,11 @@ def ase2json(atoms_ase):
 
 
 def json2atoms(at_json):
-    at_decoded = json.loads(at_json)
+    try:
+        at_decoded = json.loads(at_json)
+    except TypeError:
+        # of dict is given
+        at_decoded = at_json
 
     symbols = []
     pos_list = []
@@ -408,22 +413,35 @@ def initialise_application(data):
 
                               # 3D Viewer
                               # a main Div, with a dcc.Loading compontnt in it for loading of the viewer
-                              html.Div(className='app__container_3dmolviewer',
-                                       style={'height': data['styles']['height_viewer'],
-                                              'width_graph': data['styles']['width_viewer']},
-                                       children=[
-                                           # loading component for the 3d viewer
-                                           dcc.Loading(
-                                               html.Div(children=[
-                                                   html.Div(id='div-3dviewer',
-                                                            # the actual viewer will be initialised here
-                                                            # todo: check that at_json works
-                                                            children=[]),
-                                                   # some info at the bottom of the viewer
-                                                   dcc.Markdown(id='markdown-info-in-viewer',
-                                                                children=markdown_text,
-                                                                className='app__remarks_viewer')
-                                               ]))])])
+                              # html.Div(className='app__container_3dmolviewer',
+                              #          style={'height': data['styles']['height_viewer'],
+                              #                 'width_graph': data['styles']['width_viewer']},
+                              #          children=[
+                              #              # loading component for the 3d viewer
+                              #              dcc.Loading(
+                              #                  html.Div(children=[
+                              #                      html.Div(id='div-3dviewer',
+                              #                               # the actual viewer will be initialised here
+                              #                               # todo: check that at_json works
+                              #                               children=[]),
+                              #                      # some info at the bottom of the viewer
+                              #                      dcc.Markdown(id='markdown-info-in-viewer',
+                              #                                   children=markdown_text,
+                              #                                   className='app__remarks_viewer')
+                              #                  ]))])
+                              html.Div([dcc.Loading(html.Div([
+                                  dash_bio.Molecule3dViewer(
+                                      id='3d-viewer',
+                                      styles={},
+                                      shapes={},
+                                      modelData={}),
+                                  dcc.Markdown(markdown_text,
+                                               className='app__remarks_viewer')
+                              ],
+                                  id='div-3dviewer'))], className='app__container_3dmolviewer',
+                                  style={'height': data['styles']['height_viewer'],
+                                         'width_graph': data['styles']['width_viewer']})
+                          ])
 
     return app
 
