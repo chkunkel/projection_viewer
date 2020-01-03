@@ -118,8 +118,9 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 
     @app.callback(Output('div-3dviewer', 'children'),
                   [Input('graph', 'clickData'),
-                   Input('app-memory', 'data')])
-    def update_3d_viewer_on_hover(hover_data_dict, data):
+                   Input('app-memory', 'data'),
+                   Input('input_periodic_repetition_structure', 'value')])
+    def update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str):
         """
         Update the visualiser on a hover event.
         If the event is None, then no change occurs.
@@ -134,10 +135,13 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 
         # decide which one triggered the event
         ctx = callback_context
+        point_index = 0
         if ctx.triggered:
-            if ctx.triggered[0]['prop_id'].split('.')[0] == 'app-memory':
-                point_index = 0
-            elif ctx.triggered[0]['prop_id'].split('.')[0] == 'graph':
+            triggr_obj_name = ctx.triggered[0]['prop_id'].split('.')[0]
+
+            if triggr_obj_name == 'app-memory':
+                pass
+            elif triggr_obj_name == 'graph':
                 if hover_data_dict is None:
                     raise PreventUpdate
 
@@ -150,8 +154,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
             print('DEBUG: update of 3d viewer prevented by callback_context.triggered=False')
             raise PreventUpdate
 
-        viewer_data = helpers.construct_3d_view_data(data, point_index)
-
+        viewer_data = helpers.construct_3d_view_data(data, point_index, periodic_repetition_str)
         return dash_bio.Molecule3dViewer(**viewer_data)
 
     @app.callback([Output('dropdown-x-axis', 'options'),
@@ -182,4 +185,3 @@ if __name__ == "__main__":
 
     sys.exit(
         main('/home/tks32/work/projection_viewer/examples/methane_collision/test_w_abcd/ASAP-pca-d4-new.xyz', 'atomic'))
-

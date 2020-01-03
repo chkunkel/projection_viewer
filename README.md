@@ -38,12 +38,3 @@ Tamas K. Stenczel (tks32@cam.ac.uk)
 
 Licence so far: BY-SA
 
-
-#### Todo:
-
-- Max, min range for colormap, colormap chooser
-- Max, min range for size, maybe a size-map, should show which size belongs to which property
-- So far, every field is treatd as continous. It would be good to have a detection, whether a property is categorical,
-  for example if there are less than 10 values possible. Then, the colorbar and sizes should map that also.
-- Improve Design, some more eyecandy should be added!
-- Possibility to switch to a 3D scatter plot 

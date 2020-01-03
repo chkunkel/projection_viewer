@@ -1,7 +1,9 @@
 import json
+from copy import deepcopy
 
 import ase
 import ase.io
+import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 import numpy as np
@@ -9,7 +11,6 @@ import pandas as pd
 from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
 from dash import Dash
-import dash_bio
 
 
 def get_features_molecular(feature, atoms):
@@ -177,25 +178,6 @@ def ase2xyz(atoms):
     return a_str
 
 
-# rm
-# import json
-# import six.moves.urllib.request as urlreq
-# from six import PY3
-# model_data = urlreq.urlopen('https://raw.githubusercontent.com/Autodesk/molecule-3d-for-react/master/example/js/'
-#                             'bipyridine_model_data.js').read()
-# model_data=str(model_data)
-# model_data = model_data.replace("\\n", """""").split("default")[1].split(";")[0]
-# print(model_data)
-# modelData = json.loads(model_data)
-# modelData.pop("bonds")
-
-#  'https://raw.githubusercontent.com/plotly/dash-bio-docs-files/master/' +
-#    'mol3d/model_data.js'
-
-
-# {"name": "HD21", "chain": "A", "positions": [-13.031, 4.622, 2.311], "residue_index": 11, "element": "H",
-# "residue_name": "ASN11", "serial": 110}, {"name": "HD22", "chain": "A", "positions": [-13.154, 6.114, 3.177],
-# "residue_index": 11, "element": "H", "residue_name": "ASN11", "serial": 111}
 def build_dataframe_features(atoms, mode='molecular'):
     if mode == 'atomic':
         keys = atoms[0].arrays.keys()
@@ -286,26 +268,26 @@ def get_soap_spheres(data, at, atom_in_conifg_id):
     return shapes
 
 
-def construct_3d_view_data(data, point_index, skip_soap=False):
+def construct_3d_view_data(data, point_index, periodic_repetition_str, skip_soap=False):
     # get the ids to specify the atom in the atoms_list
     config_id = data['system_index'][point_index]
     atom_in_conifg_id = data['atom_index_in_systems'][point_index]
 
     at_json = data['atoms_list_json'][config_id]
-    at = json2atoms(at_json)
+    at_ase = json2atoms(at_json)
+    at_ase = make_periodic_ase_at(at_ase, periodic_repetition_str)
 
     # soap spheres and cell frame
     shapes = []
     if not skip_soap:
-        shapes += get_soap_spheres(data, at, atom_in_conifg_id)
-    shapes += get_periodic_box_shape_dict(at)
+        shapes += get_soap_spheres(data, at_ase, atom_in_conifg_id)
+    shapes += get_periodic_box_shape_dict(at_ase)
 
     # colour and size of the atoms in the viewer
-    styles = return_atom_list_style_for_3d_view(at)
+    styles = return_atom_list_style_for_3d_view(at_ase)
 
     # model data: the atoms in the format that is understood by the 3D viewer
-    # model_data = json.loads(ase2json(at))
-    model_data = json.loads(ase2json(at))
+    model_data = json.loads(ase2json(at_ase))
 
     viewer_data = dict(styles=styles, shapes=shapes, modelData=model_data)
     return viewer_data
@@ -413,34 +395,27 @@ def initialise_application(data):
 
                               # 3D Viewer
                               # a main Div, with a dcc.Loading compontnt in it for loading of the viewer
-                              # html.Div(className='app__container_3dmolviewer',
-                              #          style={'height': data['styles']['height_viewer'],
-                              #                 'width_graph': data['styles']['width_viewer']},
-                              #          children=[
-                              #              # loading component for the 3d viewer
-                              #              dcc.Loading(
-                              #                  html.Div(children=[
-                              #                      html.Div(id='div-3dviewer',
-                              #                               # the actual viewer will be initialised here
-                              #                               # todo: check that at_json works
-                              #                               children=[]),
-                              #                      # some info at the bottom of the viewer
-                              #                      dcc.Markdown(id='markdown-info-in-viewer',
-                              #                                   children=markdown_text,
-                              #                                   className='app__remarks_viewer')
-                              #                  ]))])
-                              html.Div([dcc.Loading(html.Div([
-                                  dash_bio.Molecule3dViewer(
-                                      id='3d-viewer',
-                                      styles={},
-                                      shapes={},
-                                      modelData={}),
-                                  dcc.Markdown(markdown_text,
-                                               className='app__remarks_viewer')
-                              ],
-                                  id='div-3dviewer'))], className='app__container_3dmolviewer',
+                              html.Div(
+                                  className='app__container_3dmolviewer',
                                   style={'height': data['styles']['height_viewer'],
-                                         'width_graph': data['styles']['width_viewer']})
+                                         'width_graph': data['styles']['width_viewer']},
+                                  children=[
+                                      # some info about the viewer
+                                      dcc.Markdown(markdown_text, className='app__remarks_viewer'),
+                                      # Input field for the periodic images
+                                      html.Span(className='app__remarks_viewer',  # fixme: missing style
+                                                children=['Periodic repetition of structure: ',
+                                                          dcc.Input(id='input_periodic_repetition_structure',
+                                                                    type='text',
+                                                                    placeholder='(0,1) (0,1) (0,1)')]),
+                                      # loading component for the 3d viewer
+                                      dcc.Loading(
+                                          # a div to hold the viewer
+                                          html.Div(id='div-3dviewer', children=[
+                                              # the actual viewer will be initialised here
+                                              dash_bio.Molecule3dViewer(id='3d-viewer', styles={}, shapes={},
+                                                                        modelData={})
+                                          ]))])
                           ])
 
     return app
@@ -492,3 +467,30 @@ def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, 
                        **kwargs)
 
     return config_dict
+
+
+def make_periodic_ase_at(ase_at, periodic_repetition_str='(0,1) (0,1) (0,1)'):
+    cell = ase_at.get_cell()
+
+    if periodic_repetition_str is not None and periodic_repetition_str != '(0,1) (0,1) (0,1)':
+        # get the number of repetitions and the start+end of them
+        x_rep, y_rep, z_rep = periodic_repetition_str.split(' ')
+        x_rep = [int(x) for x in x_rep[1:-1].split(',')]
+        x_multi = x_rep[1] - x_rep[0]
+        y_rep = [int(y) for y in y_rep[1:-1].split(',')]
+        y_multi = y_rep[1] - y_rep[0]
+        z_rep = [int(z) for z in z_rep[1:-1].split(',')]
+        z_multi = z_rep[1] - z_rep[0]
+
+        # shift_cell = atoms_current.get_center_of_mass()
+        atoms_supercell = deepcopy(ase_at) * np.array([x_multi, y_multi, z_multi])
+
+        # shift correctly, we need to correct for the viewers automatic com centering
+        new_positions = np.array([x + (cell[0] * x_rep[0] + cell[1] * y_rep[0] + cell[2] * z_rep[0]) for x in
+                                  atoms_supercell.get_positions()])
+        atoms_supercell.set_positions(new_positions)
+        atoms_supercell.set_cell(cell)
+
+        return atoms_supercell
+    else:
+        return ase_at
