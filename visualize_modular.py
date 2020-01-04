@@ -1,5 +1,6 @@
 #!python3
 
+import argparse
 import copy
 import sys
 
@@ -16,15 +17,24 @@ from dash.exceptions import PreventUpdate
 import helpers
 
 
-def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
+def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
+         height_viewer=500, width_viewer=500):
     # read the data for the first time
     initial_data = dict()
 
+    # either from config or the args
+    if config_filename is not None and config_filename != 'None':
+        initial_data.update(helpers.parse_config(config_filename))
+    else:
+        initial_data['styles'] = helpers.get_style_config_dict(title, height_viewer, width_viewer)
+        initial_data['soap_cutoff_radius'] = soap_cutoff_radius
+        initial_data['marker_radius'] = marker_radius
+
     # update with the xyz data
-    initial_data.update(helpers.load_xyz(filename, mode))
-    initial_data['styles'] = helpers.get_style_config_dict('f', 500, 500)  # todo: add title and such stuff here
-    initial_data['soap_cutoff_radius'] = soap_cutoff_radius
-    initial_data['marker_radius'] = marker_radius
+    if 'extended_xyz_file' in initial_data.keys():
+        initial_data.update(helpers.load_xyz(initial_data['extended_xyz_file'], initial_data['mode']))
+    else:
+        initial_data.update(helpers.load_xyz(filename, mode))
 
     # set up the application
     app = helpers.initialise_application(initial_data)
@@ -102,8 +112,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 
                 name='TODO',
             )],
-            'layout': go.Layout(height=data['styles']['height_graph'],
-                                hovermode='closest',
+            'layout': go.Layout(hovermode='closest',
                                 #         title = 'Data Visualization'
                                 xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True,
@@ -182,6 +191,34 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0):
 
 if __name__ == "__main__":
     # parse arguments
+    parser = argparse.ArgumentParser()
 
-    sys.exit(
-        main('/home/tks32/work/projection_viewer/examples/methane_collision/test_w_abcd/ASAP-pca-d4-new.xyz', 'atomic'))
+    parser.add_argument('--fxyz', type=str, help='Location of xyz file')
+    parser.add_argument('--config-file', type=str, default='None',
+                        help='Config file that configures and overwrites every other argument')
+    parser.add_argument('--width', type=int, default=600, help='Adjustment of graph width for small or large screens')
+    parser.add_argument('--height', type=int, default=600, help='Adjustment of graph height for small or large screens')
+    parser.add_argument('--mode', type=str, default='molecular',
+                        help='Mode of projection ([molecular], [atomic]), "compound" coming soon')
+    parser.add_argument('--title', type=str, default='Example', help='Titile of the plot')
+
+    parser.add_argument('--marker-radius', type=float, default=1.0,
+                        help='Radius of the green sphere, that in atomic mode allows you to identify '
+                             'the current atom in the structure')
+    parser.add_argument('--soap-cutoff', type=float, default=3.0,
+                        help='Cutoff radius for wireframe of SOAP in atomic mode')
+
+    # print help if no args were given
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    args = parser.parse_args()
+
+    sys.exit(main(filename=args.fxyz,
+                  height_viewer=args.height,
+                  width_viewer=args.width,
+                  mode=args.mode,
+                  title=args.title,
+                  config_filename=args.config_file,
+                  marker_radius=args.marker_radius,
+                  soap_cutoff_radius=args.soap_cutoff))

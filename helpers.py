@@ -1,3 +1,4 @@
+import configparser
 import json
 from copy import deepcopy
 
@@ -149,33 +150,33 @@ def get_periodic_box_shape_dict(atoms_ase):
     return shapes
 
 
-'''
-This is taken from rtools.helpers.converters
-Courtesy of Simon Rittmeyer and Christoph Schober
-We didn't want to steal it, but wanted to avoid a further dependency
-'''
-
-try:
-    import StringIO as io
-except ImportError:
-    import io
-
-
-def ase2xyz(atoms):
-    """
-    Prepare a XYZ string from an ASE atoms object.
-    """
-    # Implementation detail: If PBC should be implemented, the
-    # write to xyz needs to be changed to include cell etc.
-    if any(atoms.get_pbc()):
-        raise RuntimeError("Detected PBCs. Not supported (yet)!")
-    num_atoms = len(atoms)
-    types = atoms.get_chemical_symbols()
-    all_atoms = zip(types, atoms.get_positions())
-    a_str = str(num_atoms) + "\n" + "\n"
-    for atom in all_atoms:
-        a_str += atom[0] + " " + " ".join([str(x) for x in atom[1]]) + "\n"
-    return a_str
+# '''
+# This is taken from rtools.helpers.converters
+# Courtesy of Simon Rittmeyer and Christoph Schober
+# We didn't want to steal it, but wanted to avoid a further dependency
+# '''
+#
+# try:
+#     import StringIO as io
+# except ImportError:
+#     import io
+#
+#
+# def ase2xyz(atoms):
+#     """
+#     Prepare a XYZ string from an ASE atoms object.
+#     """
+#     # Implementation detail: If PBC should be implemented, the
+#     # write to xyz needs to be changed to include cell etc.
+#     if any(atoms.get_pbc()):
+#         raise RuntimeError("Detected PBCs. Not supported (yet)!")
+#     num_atoms = len(atoms)
+#     types = atoms.get_chemical_symbols()
+#     all_atoms = zip(types, atoms.get_positions())
+#     a_str = str(num_atoms) + "\n" + "\n"
+#     for atom in all_atoms:
+#         a_str += atom[0] + " " + " ".join([str(x) for x in atom[1]]) + "\n"
+#     return a_str
 
 
 def build_dataframe_features(atoms, mode='molecular'):
@@ -461,9 +462,7 @@ def load_xyz(filename, mode='atomic', verbose=True):
 def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, **kwargs):
     config_dict = dict(title=title,
                        height_viewer=height_viewer,
-                       height_graph=height_viewer,
                        width_viewer=width_viewer,
-                       width_graph=width_viewer,
                        **kwargs)
 
     return config_dict
@@ -494,3 +493,23 @@ def make_periodic_ase_at(ase_at, periodic_repetition_str='(0,1) (0,1) (0,1)'):
         return atoms_supercell
     else:
         return ase_at
+
+
+def parse_config(config_filename):
+    """
+    Reads parameters form a config file.
+    """
+    data = {}
+    config = configparser.ConfigParser()
+    config.read(config_filename)
+    data['extended_xyz_file'] = config['Basic']['extended_xyz_file']
+    data['mode'] = config['Basic']['mode']
+    data['soap_cutoff_radius'] = config['Basic']['soap_cutoff_radius']
+    data['marker_radius'] = config['Basic']['marker_radius']
+
+    data['styles'] = {}
+    data['styles']['title'] = config['Basic']['title']
+    data['styles']['height_viewer'] = int(config['Basic']['height_graph'])
+    data['styles']['width_viewer'] = int(config['Basic']['height_graph'])
+
+    return data
