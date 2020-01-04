@@ -18,9 +18,10 @@ import plotly.graph_objs as go
 import helpers
 
 callback_hoverdict_global = [] # necessary global variable
+list_hovertexts=[]
 
 def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, marker_radius, height_graph, width_graph):
-    global callback_hoverdict_global
+    global callback_hoverdict_global, list_hovertexts
 
     if config_filename != 'None':
         # read config if given
@@ -61,7 +62,10 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
     color_default = dataframe[dataframe.columns.tolist()[3]].tolist()
     colorbar_title = dataframe.columns.tolist()[3]
     style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
+    
 
+    list_hovertexts=helpers.get_hoverinfo_texts(dataframe)
+ 
     # Setup of app
     app = dash.Dash(__name__)
 
@@ -175,6 +179,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
          dash.dependencies.Input('colorscale', 'value'),
          dash.dependencies.Input('marker_opacity','value'),])
     def update_graph(x_axis, y_axis, marker_size, marker_size_range, marker_size_limits, marker_color, marker_color_limits, colorscale, marker_opacity):
+
+        global list_hovertexts        
+
         color_new = dataframe[dataframe.columns.tolist()[marker_color]]
         # color limits
         color_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_color]])
@@ -235,6 +242,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             x=dataframe[dataframe.columns.tolist()[x_axis]].tolist(),
             y=dataframe[dataframe.columns.tolist()[y_axis]].tolist(),
             mode='markers',
+            hovertext=list_hovertexts,
             marker={
                 'color': color_new,
                 'colorscale': 'Viridis' if colorscale is None or colorscale == '' else colorscale,
@@ -261,6 +269,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                                 )
         }
 
+       
 
     def _get_new_sizes(value, value_range, size_range):
         """Map ``value`` to a range within ``size_range`` in a linear fashion."""
@@ -269,6 +278,8 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
 
     def return_shape_callback(atoms_current, pos_marker=None, default=-1, shift_cell=np.array([0.,0.,0.])):
         
+        shapes=[]
+
         if isinstance(pos_marker, np.ndarray) or isinstance(pos_marker, list):
             shapes = [{'type': 'Sphere', "color": "gray",
                        "center": {'x': pos_marker[0], 'y': pos_marker[1], 'z': pos_marker[2]},
@@ -277,7 +288,9 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                        "center": {'x': pos_marker[0], 'y': pos_marker[1], 'z': pos_marker[2]},
                        "radius": marker_radius}
                       ]
-        shapes += helpers.get_periodic_box_shape_dict(atoms_current, shift_cell)
+        
+        shape_box = helpers.get_periodic_box_shape_dict(atoms_current, shift_cell)
+        shapes += shape_box
         return shapes
 
 
@@ -288,6 +301,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
             atoms_current = atoms[system_ids[atoms_id]]
             pos_marker = atoms_current.get_positions()[atomic_numbers[atoms_id]]
         else:
+            print(atoms_id)
             atoms_current = atoms[atoms_id]
             pos_marker=None
 

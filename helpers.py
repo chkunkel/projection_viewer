@@ -118,6 +118,18 @@ def get_periodic_box_shape_dict(atoms_ase, shift_cell=np.array([0.,0.,0.])):
     return shapes
 
 
+
+def get_hoverinfo_texts(dataframe):
+    hover_texts=[]
+    for i,row in dataframe.iterrows():
+        str_hover=''
+        for c in dataframe.columns:
+            str_hover+='{}: {}<br>'.format(c, row[c])
+        hover_texts.append(str_hover)
+    return hover_texts
+
+
+
 '''
 This is taken from rtools.helpers.converters
 Courtesy of Simon Rittmeyer and Christoph Schober
@@ -198,6 +210,7 @@ def build_dataframe_features(atoms, mode='molecular'):
                     keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
             else:
                 keys_expanded[k] = [x.info[k] for x in atoms]
+
 
     df = pd.DataFrame(data=keys_expanded)
     return df
