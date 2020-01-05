@@ -1,9 +1,9 @@
 #!python3
 
-import argparse
 import copy
 import sys
 
+import argparse
 import dash_bio
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ from dash.dependencies import Output, Input
 from dash.exceptions import PreventUpdate
 
 # helpers
-import helpers
+from projection_viewer import helpers
 
 
 def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
