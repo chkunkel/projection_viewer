@@ -14,7 +14,7 @@ from dash.dependencies import Output, Input
 from dash.exceptions import PreventUpdate
 
 # helpers
-from projection_viewer import helpers
+from projection_viewer import utils
 import projection_viewer
 
 
@@ -25,20 +25,20 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
 
     # either from config or the args
     if config_filename is not None and config_filename != 'None':
-        initial_data.update(helpers.parse_config(config_filename))
+        initial_data.update(utils.parse_config(config_filename))
     else:
-        initial_data['styles'] = helpers.get_style_config_dict(title, height_viewer, width_viewer)
+        initial_data['styles'] = utils.get_style_config_dict(title, height_viewer, width_viewer)
         initial_data['soap_cutoff_radius'] = soap_cutoff_radius
         initial_data['marker_radius'] = marker_radius
 
     # update with the xyz data
     if 'extended_xyz_file' in initial_data.keys():
-        initial_data.update(helpers.load_xyz(initial_data['extended_xyz_file'], initial_data['mode']))
+        initial_data.update(utils.load_xyz(initial_data['extended_xyz_file'], initial_data['mode']))
     else:
-        initial_data.update(helpers.load_xyz(filename, mode))
+        initial_data.update(utils.load_xyz(filename, mode))
 
     # set up the application
-    app = helpers.initialise_application(initial_data, assets_folder=projection_viewer.get_asset_folder())
+    app = utils.initialise_application(initial_data, assets_folder=projection_viewer.get_asset_folder())
 
     @app.callback(Output('graph', 'figure'),
                   [Input('app-memory', 'data'),
@@ -69,7 +69,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         #     [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
 
         # marker opacity value to float
-        marker_opacity_value = helpers.process_marker_opacity_value(marker_opacity_value)
+        marker_opacity_value = utils.process_marker_opacity_value(marker_opacity_value)
 
         # marker size
         size_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_size_key]].tolist())  # fixme this is messy
@@ -87,8 +87,8 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
                 elif size_new_i > size_new_upper:
                     size_new[idx] = marker_size_range[1]
                 else:
-                    size_new[idx] = helpers.get_new_sizes(size_new_i, [size_new_lower, size_new_upper],
-                                                          marker_size_range)
+                    size_new[idx] = utils.get_new_sizes(size_new_i, [size_new_lower, size_new_upper],
+                                                        marker_size_range)
         except:
             print('Error in scaling marker sizes. Using `30` for all data points instead.')
             size_new = np.asarray([30] * len(size_new))
@@ -164,7 +164,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
             print('DEBUG: update of 3d viewer prevented by callback_context.triggered=False')
             raise PreventUpdate
 
-        viewer_data = helpers.construct_3d_view_data(data, point_index, periodic_repetition_str)
+        viewer_data = utils.construct_3d_view_data(data, point_index, periodic_repetition_str)
         return dash_bio.Molecule3dViewer(**viewer_data)
 
     @app.callback([Output('dropdown-x-axis', 'options'),

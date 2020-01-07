@@ -2,7 +2,7 @@ import os
 
 import projection_viewer.backends
 import projection_viewer.frontend
-import projection_viewer.helpers
+import projection_viewer.utils
 import projection_viewer.processors
 
 _ROOT = os.path.abspath(os.path.dirname(__file__))
