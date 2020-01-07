@@ -1,4 +1,5 @@
 import json
+import os
 from copy import deepcopy
 
 import ase
@@ -120,24 +121,27 @@ def build_dataframe_features(atoms, mode='molecular'):
         keys_expanded['atomic_numbers'] = at_numbers
 
     for k in keys:
-        if mode == 'atomic':
-            if len(atoms[0].arrays[k].shape) > 1:
-                for i in range(atoms[0].arrays[k].shape[1]):
-                    print(k, i)
-                    keys_expanded[k + '_' + str(i)] = np.array(
-                        [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
-                    print(np.array(keys_expanded[k + '_' + str(i)]).shape)
-            else:
-                keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
-                print(k, len(keys_expanded[k]))
-                continue
+        try:
+            if mode == 'atomic':
+                if len(atoms[0].arrays[k].shape) > 1:
+                    for i in range(atoms[0].arrays[k].shape[1]):
+                        print(k, i)
+                        keys_expanded[k + '_' + str(i)] = np.array(
+                            [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
+                        print(np.array(keys_expanded[k + '_' + str(i)]).shape)
+                else:
+                    keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
+                    print(k, len(keys_expanded[k]))
+                    continue
 
-        else:
-            if isinstance(atoms[0].info[k], np.ndarray):
-                for i in range(len(atoms[0].info[k])):
-                    keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
             else:
-                keys_expanded[k] = [x.info[k] for x in atoms]
+                if isinstance(atoms[0].info[k], np.ndarray):
+                    for i in range(len(atoms[0].info[k])):
+                        keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
+                else:
+                    keys_expanded[k] = [x.info[k] for x in atoms]
+        except KeyError as err:
+            print('Skipping key:', err)
 
     df = pd.DataFrame(data=keys_expanded)
 
@@ -235,3 +239,12 @@ def make_periodic_ase_at(ase_at, periodic_repetition_str='(0,1) (0,1) (0,1)'):
         return atoms_supercell
     else:
         return ase_at
+
+
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+
+def get_asset_folder():
+    # fixme: this would be nicer with finding the package data
+    # print get_data('resource1/foo.txt')
+    return os.path.join(_ROOT, '../assets')

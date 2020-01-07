@@ -3,6 +3,7 @@
 import argparse
 import copy
 import sys
+import traceback
 
 import dash_bio
 import numpy as np
@@ -10,12 +11,13 @@ import pandas as pd
 import plotly.graph_objs as go
 # app
 from dash import callback_context
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
 
 from projection_viewer import frontend
-from projection_viewer.utils import get_asset_folder
+from projection_viewer import processors
 from projection_viewer import utils
+from projection_viewer.utils import get_asset_folder
 
 
 def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
@@ -28,7 +30,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         initial_data.update(frontend.layouts.parse_config(config_filename))
     else:
         initial_data['styles'] = frontend.visualiser.get_style_config_dict(title, height_viewer,
-                                                                                             width_viewer)
+                                                                           width_viewer)
         initial_data['soap_cutoff_radius'] = soap_cutoff_radius
         initial_data['marker_radius'] = marker_radius
 
@@ -39,7 +41,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         initial_data.update(utils.load_xyz(filename, mode))
 
     # set up the application
-    app = frontend.layouts.initialise_application(initial_data, assets_folder=get_asset_folder())
+    app = frontend.layouts.initialise_application_with_abcd(initial_data, assets_folder=get_asset_folder())
 
     @app.callback(Output('graph', 'figure'),
                   [Input('app-memory', 'data'),
@@ -144,6 +146,8 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         :return:
         """
 
+        print('\n\n\n\nDEBUG: data keys are: {}'.format(data.keys()))
+
         # decide which one triggered the event
         ctx = callback_context
         point_index = 0
@@ -166,7 +170,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
             raise PreventUpdate
 
         viewer_data = frontend.visualiser.construct_3d_view_data(data, point_index,
-                                                                                   periodic_repetition_str)
+                                                                 periodic_repetition_str)
         return dash_bio.Molecule3dViewer(**viewer_data)
 
     @app.callback([Output('dropdown-x-axis', 'options'),
@@ -190,8 +194,48 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
 
         return options, options, options, options
 
+    @app.callback(
+        Output('app-memory', 'data'),
+        [Input('button_submit_query', 'n_clicks')],
+        [State('abcd_query_input_box', 'value'),
+         State('app-memory', 'data')])
+    def update_all_data_on_new_query(n_clicks, query_value, data_originally):
+        """
+        Updates the data of the viewer as a result of a new ABCD query.
+
+        Note:
+        Takes time and computation, so need to be optimised and ran the minimal number of times.
+        """
+
+        if n_clicks is None:
+            # this is the initial call, on construction of the button
+            return data_originally
+        else:
+            if query_value is None:
+                print('DEBUG: update_all_data_on_new_query(): PreventUpdate due to None in query')
+                raise PreventUpdate
+
+        print('\n\n\n\nRunning ABCD query of `{}` with n_clicks `{}`'.format(query_value, n_clicks))
+
+        # run the ABCD query
+        try:
+            new_fn = processors.asap.abcd_exec_query_and_run_asap(query_value)
+            new_data = utils.load_xyz(new_fn, data_originally['mode'])
+            data_originally.update(new_data)
+        except KeyboardInterrupt:
+            ### handle keyboard interrupt ###
+            print('KeyboardInterrupt in update_all_data_on_new_query()')
+            raise PreventUpdate
+
+        except Exception as e:
+            traceback.print_exc()
+            sys.stderr.write('update_all_data_on_new_query' + ": " + repr(e) + "\n")
+            raise PreventUpdate
+
+        return new_data
+
     # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
-    app.run_server(debug=False, port=9999)
+    app.run_server(debug=True, port=9999)
 
 
 if __name__ == "__main__":
@@ -218,6 +262,13 @@ if __name__ == "__main__":
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
+
+    # DEV
+    print('doing the thing with ABCD', '=' * 40)
+    fn = processors.asap.abcd_exec_query_and_run_asap('traj_vis')
+    args.fxyz = fn
+    print('done with ABCD', '=' * 40)
+    print(args)
 
     sys.exit(main(filename=args.fxyz,
                   height_viewer=args.height,
