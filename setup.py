@@ -17,5 +17,5 @@ setup(name='projection_viewer',
           'Source Code': 'https://github.com/chkunkel/projection_viewer',
       },
       install_requires=['ase', 'dash_bio', 'numpy', 'pandas', 'dash', 'plotly'],
-      data_files=[('assets', [glob.glob('projection_viewer/assets/*.css')]), ]
+      data_files=[('assets', glob.glob('projection_viewer/assets/*.css')), ]
       )

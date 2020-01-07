@@ -1,19 +1,10 @@
-import configparser
 import json
 from copy import deepcopy
 
 import ase
 import ase.io
-import dash_bio
-import dash_core_components as dcc
-import dash_html_components as html
 import numpy as np
 import pandas as pd
-from ase.data import covalent_radii
-from ase.data.colors import jmol_colors
-from dash import Dash
-
-import projection_viewer
 
 
 def get_features_molecular(feature, atoms):
@@ -80,76 +71,6 @@ def json2atoms(at_json):
 
 def get_hex_color(c_rgb):
     return '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
-
-
-def return_atom_list_style_for_3d_view(ase_atoms):
-    dict_style = {}
-    for i, at in enumerate(ase_atoms):
-        hex_color = get_hex_color([int(x * 255) for x in jmol_colors[ase_atoms.get_atomic_numbers()[i]]])
-        # hex_color = '#%02x%02x%02x' % (c_rgb[0], c_rgb[1], c_rgb[2])
-        dict_style[str(i)] = {"color": hex_color, "visualization_type": "sphere",
-                              "radius": covalent_radii[ase_atoms.get_atomic_numbers()[i]]}
-    return dict_style
-
-
-# check whether a periodic box is needed to be drawn, and return it as a shape if needed
-def get_periodic_box_shape_dict(atoms_ase):
-    # so far we only show a box when it is 3d periodic
-    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return []
-
-    # point0 = np.array([0.0, 0.0, 0.0])
-    point0 = -atoms_ase.get_center_of_mass()
-    lattice_vectors = atoms_ase.get_cell()
-    point1 = list(point0 + lattice_vectors[0])
-    point2 = list(point0 + lattice_vectors[1])
-    point3 = list(point0 + lattice_vectors[2])
-    point4 = list(point2 + lattice_vectors[2])
-    point5 = list(point1 + lattice_vectors[1])
-    point6 = list(point1 + lattice_vectors[2])
-    point7 = list(point4 + lattice_vectors[0])
-    point0 = list(point0)
-
-    shapes = []
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point1[0], "y": point1[1], "z": point1[2]}})
-    shapes.append({"type": "Cylinder", "color": get_hex_color([255, 0, 0]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point2[0], "y": point2[1], "z": point2[2]}})
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 255, 0]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point3[0], "y": point3[1], "z": point3[2]}})
-
-    black = get_hex_color([255, 255, 255])
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point1[0], "y": point1[1], "z": point1[2]},
-                   "end": {"x": point5[0], "y": point5[1], "z": point5[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point1[0], "y": point1[1], "z": point1[2]},
-                   "end": {"x": point6[0], "y": point6[1], "z": point6[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point2[0], "y": point2[1], "z": point2[2]},
-                   "end": {"x": point4[0], "y": point4[1], "z": point4[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point2[0], "y": point2[1], "z": point2[2]},
-                   "end": {"x": point5[0], "y": point5[1], "z": point5[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point3[0], "y": point3[1], "z": point3[2]},
-                   "end": {"x": point4[0], "y": point4[1], "z": point4[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point3[0], "y": point3[1], "z": point3[2]},
-                   "end": {"x": point6[0], "y": point6[1], "z": point6[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point4[0], "y": point4[1], "z": point4[2]},
-                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point5[0], "y": point5[1], "z": point5[2]},
-                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
-    shapes.append({"type": "Cylinder", "color": black,
-                   "start": {"x": point6[0], "y": point6[1], "z": point6[2]},
-                   "end": {"x": point7[0], "y": point7[1], "z": point7[2]}})
-
-    return shapes
 
 
 # '''
@@ -252,178 +173,6 @@ def process_marker_opacity_value(marker_opacity_value):
     return marker_opacity_value
 
 
-def get_soap_spheres(data, at, atom_in_conifg_id):
-    if data['mode'] != 'atomic':
-        return []
-
-    # displaced by CoM as well as the whole viewer
-    # I now just moved the box and the marker, cause at_json then directly works in both modes
-    pos = at.get_positions()[atom_in_conifg_id] - at.get_center_of_mass()
-    pos_dict = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
-
-    shapes = [{'type': 'Sphere', "color": "gray",
-               "center": pos_dict,
-               "radius": data['soap_cutoff_radius'], 'wireframe': True},
-              {'type': 'Sphere', "color": "green",
-               "center": pos_dict,
-               "radius": data['marker_radius']}
-              ]
-    return shapes
-
-
-def construct_3d_view_data(data, point_index, periodic_repetition_str, skip_soap=False):
-    # get the ids to specify the atom in the atoms_list
-    config_id = data['system_index'][point_index]
-    atom_in_conifg_id = data['atom_index_in_systems'][point_index]
-
-    at_json = data['atoms_list_json'][config_id]
-    at_ase = json2atoms(at_json)
-    at_ase = make_periodic_ase_at(at_ase, periodic_repetition_str)
-
-    # soap spheres and cell frame
-    shapes = []
-    if not skip_soap:
-        shapes += get_soap_spheres(data, at_ase, atom_in_conifg_id)
-    shapes += get_periodic_box_shape_dict(at_ase)
-
-    # colour and size of the atoms in the viewer
-    styles = return_atom_list_style_for_3d_view(at_ase)
-
-    # model data: the atoms in the format that is understood by the 3D viewer
-    model_data = json.loads(ase2json(at_ase))
-
-    viewer_data = dict(styles=styles, shapes=shapes, modelData=model_data)
-    return viewer_data
-
-
-def initialise_application(data, assets_folder=projection_viewer.get_asset_folder()):
-    """
-    Set up the application. This should be ran only once, at the beginning of the session.
-
-    :return:
-    """
-
-    # STYLE SETTINGS
-    const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
-    const_style_colorscale = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
-
-    markdown_text = """**Green sphere:** Selected atom marker.  &nbsp;&nbsp;**Gray wireframe:** SOAP cutoff radius. 
-    **Mouse-Navigation:**  &nbsp;*Mouse:* Rotate,  &nbsp;&nbsp;*Ctrl+Mouse:* Translate,  &nbsp;&nbsp;*Shift+Mouse:* 
-    Zoom """
-
-    # Setup of app
-    app = Dash(__name__, assets_folder=assets_folder)
-
-    # layout
-    app.layout = html.Div(className='app-body',
-                          children=[
-                              # storage of the data in the application
-                              dcc.Store(id='app-memory', data=data, storage_type='session'),
-
-                              # title of the visualiser
-                              html.H3(children=data['styles']['title']),
-
-                              # Controls: Dropdown menus, opacity and choice of colourscale
-                              html.Div(className="app__controls", children=[
-                                  # dropdown menu for the x-axis
-                                  html.Span(className='app__dropdown',
-                                            children=["x-axis", html.Br(),
-                                                      dcc.Dropdown(id='dropdown-x-axis', style=const_style_dropdown,
-                                                                   options=[], value=0)]),
-                                  # dropdown menu for the y-axis
-                                  html.Span(className='app__dropdown',
-                                            children=["y-axis", html.Br(),
-                                                      dcc.Dropdown(id='dropdown-y-axis', style=const_style_dropdown,
-                                                                   options=[], value=0)]),
-                                  # dropdown menu for the marker size
-                                  html.Span(className='app__dropdown',
-                                            children=["marker size", html.Br(),
-                                                      dcc.Dropdown(id='dropdown-marker-size',
-                                                                   style=const_style_dropdown, options=[], value=0)]),
-                                  # dropdown menu for the marker colour
-                                  html.Span(className='app__dropdown',
-                                            children=["marker colour", html.Br(),
-                                                      dcc.Dropdown(id='dropdown-marker-colour',
-                                                                   style=const_style_dropdown, options=[], value=0)]),
-                                  # input field for marker opacity
-                                  html.Span(className='app__dropdown',
-                                            children=['marker opacity', html.Br(),
-                                                      dcc.Input(
-                                                          id='input-marker-opacity',
-                                                          type='text',
-                                                          placeholder='marker opacity 0.0 - 1.0')]),
-                                  # input field for colourscale
-                                  html.Span(className='app__dropdown',
-                                            children=['colourscale name', html.Br(),
-                                                      dcc.Input(
-                                                          id='input-colourscale',
-                                                          type='text',
-                                                          placeholder='colourscale')])
-                              ]),
-
-                              # Controls: Sliders for colour and size limits
-                              html.Div(className='app__controls', children=[
-                                  # Slider: marker size limits s
-                                  html.Span(className='app__slider',
-                                            children=['marker size range',
-                                                      dcc.RangeSlider(id='slider_marker_size_range', min=1, max=100,
-                                                                      step=0.1, value=[5, 50],
-                                                                      marks={s: str(s) for s in range(0, 101, 10)},
-                                                                      allowCross=False)]),
-                                  # New slider for marker size limits
-                                  html.Span(className='app__slider',
-                                            children=["marker-size-limits",
-                                                      dcc.RangeSlider(
-                                                          id='slider_marker_size_limits',
-                                                          min=0, max=100, step=0.1, value=[0, 100],
-                                                          marks={p: '{}%'.format(p) for p in range(0, 101, 10)},
-                                                          allowCross=False, )], ),
-                                  # Slider: marker colour limits
-                                  html.Span(className='app__slider',
-                                            children=["marker colour limits",
-                                                      dcc.RangeSlider(id='slider_marker_color_limits', min=0, max=100,
-                                                                      step=0.1, value=[0, 100],
-                                                                      marks={p: '{}%'.format(p) for p in
-                                                                             range(0, 101, 10)},
-                                                                      allowCross=False, )],
-                                            ),
-                                  # two of Br, perhaps we can remove these?
-                                  html.Br(),
-                                  html.Br(),
-                              ]),
-
-                              # Graph: placeholder, filled on graph intialisation
-                              html.Div(className='app__container_scatter', children=[
-                                  dcc.Graph(id='graph', figure={'data': [], 'layout': {}})], ),
-
-                              # 3D Viewer
-                              # a main Div, with a dcc.Loading compontnt in it for loading of the viewer
-                              html.Div(
-                                  className='app__container_3dmolviewer',
-                                  style={'height': data['styles']['height_viewer'],
-                                         'width_graph': data['styles']['width_viewer']},
-                                  children=[
-                                      # some info about the viewer
-                                      dcc.Markdown(markdown_text, className='app__remarks_viewer'),
-                                      # Input field for the periodic images
-                                      html.Span(className='app__remarks_viewer',  # fixme: missing style
-                                                children=['Periodic repetition of structure: ',
-                                                          dcc.Input(id='input_periodic_repetition_structure',
-                                                                    type='text',
-                                                                    placeholder='(0,1) (0,1) (0,1)')]),
-                                      # loading component for the 3d viewer
-                                      dcc.Loading(
-                                          # a div to hold the viewer
-                                          html.Div(id='div-3dviewer', children=[
-                                              # the actual viewer will be initialised here
-                                              dash_bio.Molecule3dViewer(id='3d-viewer', styles={}, shapes={},
-                                                                        modelData={})
-                                          ]))])
-                          ])
-
-    return app
-
-
 def load_xyz(filename, mode='atomic', verbose=True):
     """
     Loads the XYZ file
@@ -461,15 +210,6 @@ def load_xyz(filename, mode='atomic', verbose=True):
     return data
 
 
-def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, **kwargs):
-    config_dict = dict(title=title,
-                       height_viewer=height_viewer,
-                       width_viewer=width_viewer,
-                       **kwargs)
-
-    return config_dict
-
-
 def make_periodic_ase_at(ase_at, periodic_repetition_str='(0,1) (0,1) (0,1)'):
     cell = ase_at.get_cell()
 
@@ -495,23 +235,3 @@ def make_periodic_ase_at(ase_at, periodic_repetition_str='(0,1) (0,1) (0,1)'):
         return atoms_supercell
     else:
         return ase_at
-
-
-def parse_config(config_filename):
-    """
-    Reads parameters form a config file.
-    """
-    data = {}
-    config = configparser.ConfigParser()
-    config.read(config_filename)
-    data['extended_xyz_file'] = config['Basic']['extended_xyz_file']
-    data['mode'] = config['Basic']['mode']
-    data['soap_cutoff_radius'] = config['Basic']['soap_cutoff_radius']
-    data['marker_radius'] = config['Basic']['marker_radius']
-
-    data['styles'] = {}
-    data['styles']['title'] = config['Basic']['title']
-    data['styles']['height_viewer'] = int(config['Basic']['height_graph'])
-    data['styles']['width_viewer'] = int(config['Basic']['height_graph'])
-
-    return data
