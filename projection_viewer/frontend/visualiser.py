@@ -89,7 +89,11 @@ def return_atom_list_style_for_3d_view(ase_atoms):
 def construct_3d_view_data(data, point_index, periodic_repetition_str, skip_soap=False):
     # get the ids to specify the atom in the atoms_list
     config_id = data['system_index'][point_index]
-    atom_in_conifg_id = data['atom_index_in_systems'][point_index]
+
+    if data['mode'] == 'atomic':
+        atom_in_conifg_id = data['atom_index_in_systems'][point_index]
+    else:
+        atom_in_conifg_id = None
 
     at_json = data['atoms_list_json'][config_id]
     at_ase = json2atoms(at_json)
@@ -97,7 +101,7 @@ def construct_3d_view_data(data, point_index, periodic_repetition_str, skip_soap
 
     # soap spheres and cell frame
     shapes = []
-    if not skip_soap:
+    if not skip_soap and data['mode'] == 'atomic':
         shapes += get_soap_spheres(data, at_ase, atom_in_conifg_id)
     shapes += get_periodic_box_shape_dict(at_ase)
 

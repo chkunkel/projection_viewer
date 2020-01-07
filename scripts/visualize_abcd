@@ -235,7 +235,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         return new_data
 
     # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
-    app.run_server(debug=True, port=9999)
+    app.run_server(debug=False, port=9999)
 
 
 if __name__ == "__main__":

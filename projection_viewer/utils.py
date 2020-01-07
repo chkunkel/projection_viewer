@@ -119,6 +119,8 @@ def build_dataframe_features(atoms, mode='molecular'):
             sys_ids += [i] * len(mol)
         keys_expanded['system_ids'] = sys_ids
         keys_expanded['atomic_numbers'] = at_numbers
+    elif mode == 'molecular':
+        keys_expanded['system_ids'] = list(range(len(atoms)))
 
     for k in keys:
         try:
@@ -193,10 +195,10 @@ def load_xyz(filename, mode='atomic', verbose=True):
 
     # Setup of the dataframes and atom/molecular infos for the 3D-Viewer
     df = build_dataframe_features(atoms_list, mode=mode)
-    system_index = None
+    system_index = df['system_ids']
     atom_index_in_systems = None
     if mode == 'atomic':
-        system_index = df['system_ids']
+        # system_index = df['system_ids']
         atom_index_in_systems = df['atomic_numbers']
         df.drop(['atomic_numbers', 'system_ids'], axis=1, inplace=True)
 

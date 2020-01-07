@@ -1,11 +1,11 @@
 import configparser
 
-from projection_viewer.utils import get_asset_folder
-
 import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 from dash import Dash
+
+from projection_viewer.utils import get_asset_folder
 
 
 def initialise_application_with_abcd(data, assets_folder=get_asset_folder()):
