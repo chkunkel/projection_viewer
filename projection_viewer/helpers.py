@@ -13,6 +13,8 @@ from ase.data import covalent_radii
 from ase.data.colors import jmol_colors
 from dash import Dash
 
+import projection_viewer
+
 
 def get_features_molecular(feature, atoms):
     """Returns a list with the molecular feature for all geometries in `atoms`"""
@@ -294,7 +296,7 @@ def construct_3d_view_data(data, point_index, periodic_repetition_str, skip_soap
     return viewer_data
 
 
-def initialise_application(data):
+def initialise_application(data, assets_folder=projection_viewer.get_asset_folder()):
     """
     Set up the application. This should be ran only once, at the beginning of the session.
 
@@ -310,7 +312,7 @@ def initialise_application(data):
     Zoom """
 
     # Setup of app
-    app = Dash(__name__)
+    app = Dash(__name__, assets_folder=assets_folder)
 
     # layout
     app.layout = html.Div(className='app-body',

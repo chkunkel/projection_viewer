@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import glob
 
 description = 'Plotly app for viewing of atomistic data'
 
@@ -15,4 +16,6 @@ setup(name='projection_viewer',
       project_urls={
           'Source Code': 'https://github.com/chkunkel/projection_viewer',
       },
-      install_requires=['ase', 'dash_bio', 'numpy', 'pandas', 'dash', 'plotly'])
+      install_requires=['ase', 'dash_bio', 'numpy', 'pandas', 'dash', 'plotly'],
+      data_files=[('assets', [glob.glob('projection_viewer/assets/*.css')]), ]
+      )
