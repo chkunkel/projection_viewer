@@ -121,7 +121,8 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
                                        'title': dataframe.columns.tolist()[x_axis_key]},
                                 yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
                                        'showline': True, 'mirror': True,
-                                       'title': dataframe.columns.tolist()[y_axis_key]}
+                                       'title': dataframe.columns.tolist()[y_axis_key]},
+                                height=data['styles']['height_graph'],
                                 )
         }
 

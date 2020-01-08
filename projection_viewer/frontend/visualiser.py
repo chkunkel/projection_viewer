@@ -11,6 +11,7 @@ def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, 
     config_dict = dict(title=title,
                        height_viewer=height_viewer,
                        width_viewer=width_viewer,
+                       height_graph=height_viewer,
                        **kwargs)
 
     return config_dict
