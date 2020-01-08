@@ -1,0 +1,175 @@
+#!ipython
+
+import sys
+
+import dash_core_components as dcc
+import dash_html_components as html
+from dash import Dash
+from dash.dependencies import Output, Input, State
+from dash.exceptions import PreventUpdate
+
+from projection_viewer.utils import get_asset_folder
+
+separator = html.Span(className="class__abcd_separator", style={'width': '5%', 'display': 'inline-block'})
+# style_input_box = {'height': '25px', 'width': '100%', 'display': 'inline-block'}
+# style_button = {'width': '15%', 'display': 'inline-block'}
+style_input_box = {}
+style_button = {}
+
+# abcd_tab_contents = html.Div(className='app-body', children=[
+#                                  # Controls 1: q, visualise, download
+#                                  html.Div(className="class__abcd_controls",
+#                                           children=[
+#                                               # html.Span(children=[
+#                                               html.Span([html.I('-q', className='class__abcd_i')]),
+#                                               # separator,
+#                                               dcc.Input(className="class__abcd_input_filed",
+#                                                         id='abcd_query_input_box',
+#                                                         type='text',
+#                                                         placeholder='your query (only one supported yet)',
+#                                                         style=style_input_box),
+#                                               separator,
+#                                               html.Button(className="class__abcd_button",
+#                                                           children='Visualise', id='button_visualise'),
+#                                               # html.Span(style={'width': '15%', 'display': 'inline-block'}),
+#                                               html.Button(
+#                                                   className="class__abcd_button",
+#                                                   children='Download', id='button_download')
+#                                               # ]),
+#                                           ]),
+#
+#                                  # Controls 2: p and summary
+#                                  html.Div(className="class__abcd_controls",
+#                                           children=[
+#                                               html.Span(children=[
+#                                                   html.Span([html.I('-p', className='class__abcd_i')]),
+#                                                   # separator,
+#                                                   dcc.Input(className="class__abcd_input_filed",
+#                                                             id='abcd_prop_input_box',
+#                                                             type='text',
+#                                                             placeholder='your properties (only one supported yet)',
+#                                                             style=style_input_box),
+#                                                   # separator,
+#                                                   html.Button('Summary', id='button_summary',
+#                                                               className="class__abcd_button", )
+#                                               ]),
+#                                           ]),
+#                                  # the Markdown output
+#                                  html.Div([dcc.Markdown('```\n Something \n ```', className='app__remarks_viewer',
+#                                                         id='markdown_output')])
+#                              ])
+abcd_tab_contents = html.Div(className='app-body', children=[
+    # Controls 1: q, visualise, download
+    html.Div(className="class__abcd_controls",
+             children=[
+                 # html.Span(children=[
+                 html.Span([html.I('-q', className='class__abcd_i')]),
+                 # separator,
+                 dcc.Input(className="class__abcd_input_filed",
+                           id='abcd_query_input_box',
+                           type='text',
+                           placeholder='your query (only one supported yet)',
+                           style=style_input_box),
+                 separator,
+                 html.Button(className="class__abcd_button",
+                             children='Visualise', id='button_visualise'),
+                 # html.Span(style={'width': '15%', 'display': 'inline-block'}),
+                 html.Button(
+                     className="class__abcd_button",
+                     children='Download', id='button_download')
+                 # ]),
+             ]),
+
+    # Controls 2: p and summary
+    html.Div(className="class__abcd_controls",
+             children=[
+                 html.Span(children=[
+                     html.Span([html.I('-p', className='class__abcd_i')]),
+                     # separator,
+                     dcc.Input(className="class__abcd_input_filed",
+                               id='abcd_prop_input_box',
+                               type='text',
+                               placeholder='your properties (only one supported yet)',
+                               style=style_input_box),
+                     # separator,
+                     html.Button('Summary', id='button_summary',
+                                 className="class__abcd_button_big", ),
+                 ]),
+             ]),
+    # the Markdown output
+    html.Div([dcc.Markdown('```\n Something \n ```', className='app__remarks_viewer',
+                           id='markdown_output')])
+])
+
+
+def layout():
+    # Setup of app
+    app = Dash(__name__, assets_folder=get_asset_folder())
+
+    # layout
+    app.layout = dcc.Tabs(id="tabs", value='tab-1', children=[
+        dcc.Tab(label='ABCD', value='ABCD', children=[abcd_tab_contents]),
+        dcc.Tab(label='Visualiser', value='Visualiser'),
+    ])
+
+    return app
+
+
+# id='main_title'
+# id='abcd_query_input_box',
+# id='button_visualise'
+# id='button_download'
+# id='abcd_prop_input_box',
+# id='button_summary'
+# id='markdown_output'
+
+
+def main():
+    # set up the application
+    app = layout()
+
+    @app.callback(Output('markdown_output', 'children'),
+                  [Input('button_summary', 'n_clicks')],
+                  [State('abcd_query_input_box', 'value'),
+                   State('abcd_prop_input_box', 'value')])
+    def show_summary(click, q_val, p_val):
+        print('DEBUG: called show_summary() with args \n {}'.format((click, q_val, p_val)))
+
+        if isinstance(q_val, str):
+            q_val = q_val.replace('\n', ' ')
+            if q_val.strip() == '':
+                q_val = None
+
+        if isinstance(p_val, str):
+            p_val = p_val.replace('\n', ' ')
+            if p_val.strip() == '':
+                p_val = None
+
+        print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
+
+        if click is None or (p_val is not None and q_val is None):
+            print('PreventUpdate in show_summary()')
+            raise PreventUpdate
+
+        abcd_cmd = 'abcd summary '
+        if p_val is not None:
+            abcd_cmd += ' -p {}'.format(p_val)
+        if q_val is not None:
+            abcd_cmd += ' -q {}'.format(q_val)
+
+        print('\n\nDEBUG: abcd command:\n>>>{}'.format(abcd_cmd))
+
+        abcd_out = get_ipython().getoutput(abcd_cmd)
+
+        print('DEBUG: output of abcd is {}'.format(abcd_out))
+
+        md_output = '```\n{}\n```'.format('\n'.join(abcd_out))
+
+        return md_output
+
+    # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
+    app.run_server(debug=False, port=9999)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
