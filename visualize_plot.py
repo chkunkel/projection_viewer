@@ -13,7 +13,7 @@ import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 import numpy as np
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 
 import helpers
 
@@ -238,7 +238,7 @@ def main(config_filename, extended_xyz_file, mode, title, soap_cutoff_radius, ma
                 size_new_tmp.append(0)
         size_new = np.asarray(size_new_tmp)
 
-        return {'data': [go.Scatter(
+        return {'data': [go.Scattergl(
             x=dataframe[dataframe.columns.tolist()[x_axis]].tolist(),
             y=dataframe[dataframe.columns.tolist()[y_axis]].tolist(),
             mode='markers',
