@@ -8,10 +8,13 @@ def abcd_exec_query_and_run_asap(query_string):
     Note:
         This is very much in development, proof of concept really.
     """
+    # process the query string
+    query_string = query_string.replace('\n', ' ')
+    query_string = query_string.replace('"', '\\"')
 
     # exec ABCD download
     abcd_fn = 'raw_abcd_data.xyz'
-    abcd_command = "abcd download {fn} -f xyz -q {qq}".format(qq=query_string, fn=abcd_fn)
+    abcd_command = 'abcd download {fn} -f xyz -q "{qq}"'.format(qq=query_string, fn=abcd_fn)
     os.system(abcd_command)
 
     # exec ASAP gen_soap_descriptors.py

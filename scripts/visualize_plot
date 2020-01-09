@@ -14,8 +14,8 @@ from dash.dependencies import Output, Input
 from dash.exceptions import PreventUpdate
 
 from projection_viewer import frontend
-from projection_viewer.utils import get_asset_folder
 from projection_viewer import utils
+from projection_viewer.utils import get_asset_folder
 
 
 def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
@@ -28,7 +28,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         initial_data.update(frontend.layouts.parse_config(config_filename))
     else:
         initial_data['styles'] = frontend.visualiser.get_style_config_dict(title, height_viewer,
-                                                                                             width_viewer)
+                                                                           width_viewer)
         initial_data['soap_cutoff_radius'] = soap_cutoff_radius
         initial_data['marker_radius'] = marker_radius
 

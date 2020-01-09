@@ -44,6 +44,7 @@ p {
 
 .app__container_3dmolviewer {
     width: 30%;
+    height: 40%;
     display: inline-block;
     border: solid;
     border-width: 1px;
@@ -89,3 +90,29 @@ p {
     display: inline-block;
 }
 
+.class__abcd_controls {
+    display: block;
+}
+
+.class__abcd_i {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.class__abcd_button {
+    margin-left: 2%;
+    margin-right: 2%;
+    alignment: left;
+    width: 10%;
+}
+
+.class__abcd_input_filed{
+    width: 40%
+}
+
+.class__abcd_button_big {
+    margin-left: 7%;
+    margin-right: 2%;
+    width: 24%;
+    alignment: left;
+}

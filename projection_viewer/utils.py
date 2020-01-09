@@ -145,7 +145,14 @@ def build_dataframe_features(atoms, mode='molecular'):
         except KeyError as err:
             print('Skipping key:', err)
 
-    df = pd.DataFrame(data=keys_expanded)
+    try:
+        df = pd.DataFrame(data=keys_expanded)
+    except Exception as e:
+        print('\n\n\n\nDEBUG: df creation failed')
+        for key, val in keys_expanded.items():
+            print('\t{}\t{}\t{}'.format(key, np.shape(val), type(val)))
+        print('\n\nNOW the traceback:')
+        raise e
 
     return df
 
