@@ -303,41 +303,74 @@ def get_tab_layout_visualiser(data):
 
 def get_tab_layout_abcd_summary():
     layout = html.Div(className='app-body', children=[
-        # Controls 1: q, visualise, download
-        html.Div(className="class__abcd_controls",
-                 children=[
-                     # html.Span(children=[
-                     html.Span([html.I('-q', className='class__abcd_i')]),
-                     # separator,
-                     dcc.Input(className="class__abcd_input_filed",
-                               id='abcd_query_input_box',
-                               type='text',
-                               placeholder='your query (only one supported yet)'),
-                     html.Span(className="class__abcd_separator", style={'width': '5%', 'display': 'inline-block'}),
-                     html.Button(className="class__abcd_button",
-                                 children='Visualise', id='button_visualise'),
-                     # html.Span(style={'width': '15%', 'display': 'inline-block'}),
-                     html.Button(
-                         className="class__abcd_button",
-                         children='Download', id='button_download')
-                     # ]),
-                 ]),
-
-        # Controls 2: p and summary
-        html.Div(className="class__abcd_controls",
-                 children=[
-                     html.Span(children=[
-                         html.Span([html.I('-p', className='class__abcd_i')]),
+        # ABCD: left side
+        html.Div(className='class_container_abcd', children=[
+            # Controls 1: q, visualise, download
+            html.Div(className="class__abcd_controls",
+                     children=[
+                         # html.Span(children=[
+                         html.Span([html.I('-q', className='class__abcd_i')]),
+                         # separator,
                          dcc.Input(className="class__abcd_input_filed",
-                                   id='abcd_prop_input_box',
+                                   id='abcd_query_input_box',
                                    type='text',
-                                   placeholder='your properties (only one supported yet)', ),
-                         html.Button('Summary', id='button_summary',
-                                     className="class__abcd_button_big", ),
+                                   placeholder='your query (only one supported yet)'),
+                         html.Span(className="class__abcd_separator", style={'width': '5%', 'display': 'inline-block'}),
+                         # ]),
                      ]),
-                 ]),
-        # the Markdown output
-        html.Div([dcc.Markdown('```\n Something \n ```', className='app__remarks_viewer',
-                               id='markdown_output')])
+
+            # Controls 2: p and summary
+            html.Div(className="class__abcd_controls",
+                     children=[
+                         html.Span(children=[
+                             html.Span([html.I('-p', className='class__abcd_i')]),
+                             dcc.Input(className="class__abcd_input_filed",
+                                       id='abcd_prop_input_box',
+                                       type='text',
+                                       placeholder='your properties (only one supported yet)', ),
+                         ]),
+                     ]),
+
+            # Controls 3: buttons
+            html.Div(className="class__abcd_controls", children=[
+                html.Button(children='Visualise', id='button_visualise', className="class__abcd_button", ),
+                html.Button(children='Download', id='button_download', className="class__abcd_button"),
+                html.Button(children='Summary', id='button_summary', className="class__abcd_button", ),
+            ]),
+
+            # the Markdown output
+            html.Div([dcc.Markdown('```\n Something \n ```', className='app__remarks_viewer',
+                                   id='markdown_output')])
+        ]),
+        # ASAP: right side
+        html.Div(className='class_container_asap', children=[
+            # just a title
+            html.H3('Processing controls'),
+
+            # dropdown menu for processor
+            html.Span(className='class__abcd_controls',
+                      children=[dcc.Dropdown(id='dropdown-processor',
+                                             options=[dict(label='None', value='none'),
+                                                      dict(label='ASAP', value='ASAP')], value=0)]),
+
+            # input for asap descriptor string
+            html.Br(),
+            html.Span(className='class__abcd_controls',
+                      children=["Descriptor arguments - SOAP", html.Br(),
+                                dcc.Input(className="class__abcd_input_filed",
+                                          id='asap_desc_input',
+                                          type='text',
+                                          placeholder='--l 8 --n 6 --g 0.5 --periodic True --rcut 4.5 --peratom True', )]),
+
+            # input for asap pca string
+            html.Br(),
+            html.Span(className='class__abcd_controls',
+                      children=["PCA arguments", html.Br(),
+                                dcc.Input(className="class__abcd_input_filed",
+                                          id='asap_pca_input',
+                                          type='text',
+                                          placeholder='-d 4 --scale True --peratom True --desc-key SOAP-n6-l8-c4.5-g0.5 --fxyz ASAP-n6-l8-c4.5-g0.5.xyz', )]),
+        ]),
+
     ])
     return layout

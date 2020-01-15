@@ -36,4 +36,10 @@ def abcd_exec_query_and_run_asap(query_string, peratom=True, soap_n=6, soap_l=8,
                                                     key=desc_name)
     os.system(asap_pca_command)
 
+    # the default commands, that are produced now
+    # python /home/tks32/work/ASAP/asap/gen_soap_descriptors.py -fxyz raw_abcd_data.xyz
+    #                       --l 8 --n 6 --g 0.5 --periodic True --rcut 4.5 --peratom True
+    # python /home/tks32/work/ASAP/asap/pca_minimal.py --output ASAP-pca-d4-new.xyz
+    #                       -d 4 --scale True --peratom True --desc-key SOAP-n6-l8-c4.5-g0.5 --fxyz ASAP-n6-l8-c4.5-g0.5.xyz
+
     return final_fn

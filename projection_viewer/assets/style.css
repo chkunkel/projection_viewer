@@ -100,19 +100,23 @@ p {
 }
 
 .class__abcd_button {
-    margin-left: 2%;
-    margin-right: 2%;
-    alignment: left;
-    width: 10%;
+    /*margin-left: 2%;*/
+    /*margin-right: 2%;*/
+    /*alignment: left;*/
+    width: 30%;
 }
 
-.class__abcd_input_filed{
-    width: 40%
+.class__abcd_input_filed {
+    width: 80%
 }
 
-.class__abcd_button_big {
-    margin-left: 7%;
-    margin-right: 2%;
-    width: 24%;
-    alignment: left;
+.class_container_abcd {
+    width: 50%;
+    float: left;
 }
+
+.class_container_asap {
+    width: 50%;
+    float: left;
+}
+
