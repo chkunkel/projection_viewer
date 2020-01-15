@@ -308,7 +308,11 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
         return options, options, options, options
 
     # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
-    app.run_server(debug=False, port=9999)
+    try:
+        app.run_server(debug=False, port=9999, host='0.0.0.0')
+    except OSError:
+        print("OSError on host='0.0.0.0' so trying the command without of it as well")
+        app.run_server(debug=False, port=9998)
 
 
 if __name__ == "__main__":
