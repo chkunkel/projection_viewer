@@ -27,6 +27,7 @@ def initialise_application_with_abcd(data, assets_folder=get_asset_folder()):
     app = Dash(__name__, assets_folder=assets_folder)
 
     # layout
+    # noinspection PyUnresolvedReferences
     app.layout = html.Div(className='app-body',
                           children=[
                               # storage of the data in the application
@@ -187,6 +188,7 @@ def parse_config(config_filename):
     return data
 
 
+# noinspection PyUnresolvedReferences
 def get_tab_layout_visualiser(data):
     # STYLE SETTINGS
     # const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
@@ -293,6 +295,7 @@ def get_tab_layout_visualiser(data):
                                       # a div to hold the viewer
                                       html.Div(id='div-3dviewer', children=[
                                           # the actual viewer will be initialised here
+                                          # noinspection PyUnresolvedReferences
                                           dash_bio.Molecule3dViewer(id='3d-viewer', styles={}, shapes={},
                                                                     modelData={})
                                       ]))])

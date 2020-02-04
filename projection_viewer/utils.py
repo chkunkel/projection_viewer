@@ -171,7 +171,7 @@ def process_marker_opacity_value(marker_opacity_value):
     :return:
     """
 
-    if marker_opacity_value == None:
+    if marker_opacity_value is None:
         marker_opacity_value = 1.0
     else:
         try:

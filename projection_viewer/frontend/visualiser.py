@@ -20,7 +20,8 @@ def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, 
 def get_periodic_box_shape_dict(atoms_ase):
     # check whether a periodic box is needed to be drawn, and return it as a shape if needed
     # so far we only show a box when it is 3d periodic
-    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0): return []
+    if not np.any(atoms_ase.get_cell_lengths_and_angles()[0:3] > 0):
+        return []
 
     # point0 = np.array([0.0, 0.0, 0.0])
     point0 = -atoms_ase.get_center_of_mass()
@@ -34,16 +35,15 @@ def get_periodic_box_shape_dict(atoms_ase):
     point7 = list(point4 + lattice_vectors[0])
     point0 = list(point0)
 
-    shapes = []
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point1[0], "y": point1[1], "z": point1[2]}})
-    shapes.append({"type": "Cylinder", "color": get_hex_color([255, 0, 0]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point2[0], "y": point2[1], "z": point2[2]}})
-    shapes.append({"type": "Cylinder", "color": get_hex_color([0, 255, 0]),
-                   "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
-                   "end": {"x": point3[0], "y": point3[1], "z": point3[2]}})
+    shapes = [{"type": "Cylinder", "color": get_hex_color([0, 0, 255]),
+               "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+               "end": {"x": point1[0], "y": point1[1], "z": point1[2]}},
+              {"type": "Cylinder", "color": get_hex_color([255, 0, 0]),
+               "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+               "end": {"x": point2[0], "y": point2[1], "z": point2[2]}},
+              {"type": "Cylinder", "color": get_hex_color([0, 255, 0]),
+               "start": {"x": point0[0], "y": point0[1], "z": point0[2]},
+               "end": {"x": point3[0], "y": point3[1], "z": point3[2]}}]
 
     black = get_hex_color([255, 255, 255])
     shapes.append({"type": "Cylinder", "color": black,

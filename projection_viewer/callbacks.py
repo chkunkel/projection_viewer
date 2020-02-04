@@ -46,6 +46,7 @@ def show_summary(click, q_val, p_val):
     print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
 
     try:
+        # noinspection PyUnresolvedReferences
         run = get_ipython().getoutput
         ipy_runner = True
     except NameError:
@@ -124,7 +125,7 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally):
         new_data = utils.load_xyz(new_fn, data_originally['mode'])
         data_originally.update(new_data)
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        # handle keyboard interrupt
         print('KeyboardInterrupt in update_all_data_on_new_query()')
         raise PreventUpdate
 
@@ -257,7 +258,12 @@ def update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str):
 
     :param hover_data_dict:
     :param data:
+    :param periodic_repetition_str:
     :return:
+
+    Args:
+        periodic_repetition_str:
+        periodic_repetition_str:
     """
 
     # decide which one triggered the event
@@ -288,6 +294,7 @@ def update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str):
     except KeyError:
         viewer_data = dict()
 
+    # noinspection PyUnresolvedReferences
     return dash_bio.Molecule3dViewer(**viewer_data)
 
 
