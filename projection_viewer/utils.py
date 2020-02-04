@@ -224,10 +224,14 @@ def load_xyz(filename, mode='atomic', verbose=True):
 
     at_list_json = [ase2json(at) for at in atoms_list]
 
+    # hovertext list for the viewer
+    list_hovertexts = get_hoverinfo_texts(df)
+
     data = {'system_index': system_index,
             'atom_index_in_systems': atom_index_in_systems,
             'df_json': df.to_json(),
             'atoms_list_json': at_list_json,
+            'list_hovertexts': list_hovertexts,
             'mode': mode}
 
     return data
@@ -267,3 +271,16 @@ def get_asset_folder():
     # fixme: this would be nicer with finding the package data
     # print get_data('resource1/foo.txt')
     return os.path.join(_ROOT, '../assets')
+
+
+def get_hoverinfo_texts(dataframe):
+    """
+    By chkunkel, taken from repo at merge time.
+    """
+    hover_texts = []
+    for i, row in dataframe.iterrows():
+        str_hover = ''
+        for c in dataframe.columns:
+            str_hover += '{}: {}<br>'.format(c, row[c])
+        hover_texts.append(str_hover)
+    return hover_texts

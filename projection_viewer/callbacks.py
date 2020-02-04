@@ -206,11 +206,17 @@ def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_ke
         print('Error in scaling marker sizes. Using `30` for all data points instead.')
         size_new = np.asarray([30] * len(size_new))
 
+    try:
+        list_hovertexts = data['list_hovertexts']
+    except KeyError:
+        list_hovertexts = []
+
     graph_data = {
         'data': [go.Scatter(
             x=dataframe[dataframe.columns.tolist()[x_axis_key]].tolist(),
             y=dataframe[dataframe.columns.tolist()[y_axis_key]].tolist(),
             mode='markers',
+            hovertext=list_hovertexts,
             marker={
                 'color': color_new,
                 'colorscale': 'Viridis' if colourscale_name is None or colourscale_name == '' else colourscale_name,
