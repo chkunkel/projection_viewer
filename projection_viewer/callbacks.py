@@ -1,4 +1,5 @@
 import copy
+import subprocess
 import sys
 import traceback
 
@@ -26,6 +27,10 @@ def show_summary(click, q_val, p_val):
     """
     print('DEBUG: called show_summary() with args \n {}'.format((click, q_val, p_val)))
 
+    if click is None:
+        print('PreventUpdate in show_summary()')
+        raise PreventUpdate
+
     if isinstance(q_val, str):
         q_val = q_val.replace('\n', ' ')
         q_val = q_val.replace('"', '\\"')
@@ -40,23 +45,42 @@ def show_summary(click, q_val, p_val):
 
     print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
 
-    if click is None:
-        print('PreventUpdate in show_summary()')
-        raise PreventUpdate
+    try:
+        run = get_ipython().getoutput
+        ipy_runner = True
+    except NameError:
+        def run(cmd):
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            result = result.stdout.decode('utf-8')
+            return result.split('\n')
 
-    abcd_cmd = 'abcd summary '
-    if p_val is not None:
-        abcd_cmd += ' -p "{}"'.format(p_val)
-    if q_val is not None:
-        abcd_cmd += ' -q "{}"'.format(q_val)
+        ipy_runner = False
 
+    # define command as needed
+    if ipy_runner:
+        abcd_cmd = 'abcd summary '
+        if p_val is not None:
+            abcd_cmd += ' -p "{}"'.format(p_val)
+        if q_val is not None:
+            abcd_cmd += ' -q "{}"'.format(q_val)
+
+    else:
+        abcd_cmd = ['abcd', 'summary']
+        if p_val is not None:
+            abcd_cmd += ['-p', p_val]
+        if q_val is not None:
+            abcd_cmd += ['-q', q_val]
+
+    # get the output
     print('\n\nDEBUG: abcd command:\n>>>{}'.format(abcd_cmd))
+    abcd_out = run(abcd_cmd)
 
-    print("ABCD CMD: {}".format(abcd_cmd))
-    abcd_out = get_ipython().getoutput(abcd_cmd)
     try:
         if '...' in abcd_out[-1]:
-            abcd_out = get_ipython().getoutput(abcd_cmd + ' --all')
+            if ipy_runner:
+                abcd_out = run(abcd_cmd + ' --all')
+            else:
+                abcd_out = run(abcd_cmd + [' --all'])
     except IndexError:
         pass
 
