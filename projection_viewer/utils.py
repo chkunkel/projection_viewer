@@ -188,7 +188,17 @@ def process_marker_opacity_value(marker_opacity_value):
 
 def load_xyz(filename, mode='atomic', verbose=True):
     """
-    Loads the XYZ file
+    Loads the XYZ file and constructs a dictionary to be added to app-data.
+
+    with N systems, which is N frames in molecular mode and N individual atomic envs in atomic mode.
+
+    Dictionary format:
+        'system_index': (N,) int, indices of the frames of tha atoms objects
+        'atom_index_in_systems': (N,) int,  indices of atoms inside the frames; None if mode=atomic
+        'df_json': the dataframe in json format
+        'atoms_list_json': json list, the atoms objects encoded into json format
+        'mode': str, mode saved
+
 
     :param filename:
     :param mode:
