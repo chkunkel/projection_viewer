@@ -15,7 +15,6 @@ from dash import callback_context
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
 
-from projection_viewer import frontend
 from projection_viewer import processors
 from projection_viewer import utils
 from projection_viewer.frontend import layouts
@@ -36,15 +35,6 @@ def local_layout(data):
     ])
 
     return app
-
-
-# id='main_title'
-# id='abcd_query_input_box',
-# id='button_visualise'
-# id='button_download'
-# id='abcd_prop_input_box',
-# id='button_summary'
-# id='markdown_output'
 
 
 def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_radius=1.0, mode='molecular'):
@@ -79,7 +69,7 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
 
         print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
 
-        if click is None or (p_val is not None and q_val is None):
+        if click is None:
             print('PreventUpdate in show_summary()')
             raise PreventUpdate
 
@@ -171,7 +161,8 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
         try:
             dataframe = pd.read_json(data['df_json'])
         except KeyError:
-            print('DEBUG, Key Error in update_graph:\nkeys:\n    {}'.format(data.keys()))
+            print('DEBUG, PreventUpdate; Key Error in update_graph:\nkeys:\n    {}'.format(data.keys()))
+            raise PreventUpdate
 
         # todo: add context action to decide what to update if too slow
 
@@ -281,8 +272,13 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
             print('DEBUG: update of 3d viewer prevented by callback_context.triggered=False')
             raise PreventUpdate
 
-        viewer_data = frontend.visualiser.construct_3d_view_data(data, point_index,
-                                                                 periodic_repetition_str)
+        # The visualiseable atoms do not exist on the initial call, so just an empty 3D viewer is enough
+        try:
+            viewer_data = visualiser.construct_3d_view_data(data, point_index,
+                                                            periodic_repetition_str)
+        except KeyError:
+            viewer_data = dict()
+
         return dash_bio.Molecule3dViewer(**viewer_data)
 
     @app.callback([Output('dropdown-x-axis', 'options'),
@@ -303,7 +299,12 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
         print('DEBUG: the config is: \n', app.config)
         print('CALLBACK update_dropdown_options()\nkeys in data:{}'.format(data.keys()))
 
-        options = [{'label': '{}'.format(l), 'value': i} for i, l in enumerate(pd.read_json(data['df_json']).columns)]
+        # no options if the dataframe does not exist yet
+        try:
+            options = [{'label': '{}'.format(l), 'value': i} for i, l in
+                       enumerate(pd.read_json(data['df_json']).columns)]
+        except KeyError:
+            options = []
 
         return options, options, options, options
 
