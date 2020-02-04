@@ -1,18 +1,12 @@
 #!python3
 
 import argparse
-import copy
 import sys
 
-import dash_bio
-import numpy as np
-import pandas as pd
-import plotly.graph_objs as go
 # app
-from dash import callback_context
 from dash.dependencies import Output, Input
-from dash.exceptions import PreventUpdate
 
+from projection_viewer import callbacks
 from projection_viewer import frontend
 from projection_viewer import utils
 from projection_viewer.utils import get_asset_folder
@@ -55,78 +49,9 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
     def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key, marker_size_range,
                      marker_size_limits, marker_colour_limits, marker_opacity_value, colourscale_name):
 
-        # hack it out from there for now
-        dataframe = pd.read_json(data['df_json'])
-
-        # todo: add context action to decide what to update if too slow
-
-        # color limits
-        color_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_colour_key]])
-        color_span = np.abs(np.max(color_new) - np.min(color_new))
-        color_new_min = np.min(color_new)
-        color_new_lower = color_new_min + color_span / 100. * marker_colour_limits[0]
-        color_new_upper = color_new_min + color_span / 100. * marker_colour_limits[1]
-        # indices_in_limits = np.asarray(
-        #     [idx for idx, val in enumerate(color_new) if color_new_lower <= val <= color_new_upper])
-
-        # marker opacity value to float
-        marker_opacity_value = utils.process_marker_opacity_value(marker_opacity_value)
-
-        # marker size
-        size_new = copy.copy(dataframe[dataframe.columns.tolist()[marker_size_key]].tolist())  # fixme this is messy
-        size_new = np.array(size_new)
-        size_new = size_new - np.min(size_new)  # cant be smaller than 0
-        size_new_range = np.max(size_new)
-        size_new_lower = size_new_range / 100. * marker_size_limits[0]
-        size_new_upper = size_new_range / 100. * marker_size_limits[1]
-
-        try:
-            # setting linear scale between the limits and flat below and above
-            for idx, size_new_i in enumerate(size_new):
-                if size_new_i < size_new_lower:
-                    size_new[idx] = marker_size_range[0]
-                elif size_new_i > size_new_upper:
-                    size_new[idx] = marker_size_range[1]
-                else:
-                    size_new[idx] = utils.get_new_sizes(size_new_i, [size_new_lower, size_new_upper],
-                                                        marker_size_range)
-        except:
-            print('Error in scaling marker sizes. Using `30` for all data points instead.')
-            size_new = np.asarray([30] * len(size_new))
-
-        graph_data = {
-            'data': [go.Scatter(
-                x=dataframe[dataframe.columns.tolist()[x_axis_key]].tolist(),
-                y=dataframe[dataframe.columns.tolist()[y_axis_key]].tolist(),
-                mode='markers',
-                marker={
-                    'color': color_new,
-                    'colorscale': 'Viridis' if colourscale_name is None or colourscale_name == '' else colourscale_name,
-                    'size': size_new,
-                    'colorbar': {'title': dataframe.columns.tolist()[marker_colour_key]},
-                    'opacity': marker_opacity_value,
-                    'cmin': color_new_lower,
-                    'cmax': color_new_upper,
-                    'line': {
-                        'color': 'rgb(0, 116, 217)',
-                        'width': 0.5
-                    }},
-
-                name='TODO',
-            )],
-            'layout': go.Layout(hovermode='closest',
-                                #         title = 'Data Visualization'
-                                xaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
-                                       'showline': True, 'mirror': True,
-                                       'title': dataframe.columns.tolist()[x_axis_key]},
-                                yaxis={'zeroline': False, 'showgrid': False, 'ticks': 'outside', 'automargin': True,
-                                       'showline': True, 'mirror': True,
-                                       'title': dataframe.columns.tolist()[y_axis_key]},
-                                height=data['styles']['height_graph'],
-                                )
-        }
-
-        return graph_data
+        return callbacks.update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key,
+                                      marker_size_range, marker_size_limits, marker_colour_limits, marker_opacity_value,
+                                      colourscale_name)
 
     @app.callback(Output('div-3dviewer', 'children'),
                   [Input('graph', 'clickData'),
@@ -145,30 +70,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         :return:
         """
 
-        # decide which one triggered the event
-        ctx = callback_context
-        point_index = 0
-        if ctx.triggered:
-            triggr_obj_name = ctx.triggered[0]['prop_id'].split('.')[0]
-
-            if triggr_obj_name == 'app-memory':
-                pass
-            elif triggr_obj_name == 'graph':
-                if hover_data_dict is None:
-                    raise PreventUpdate
-
-                print('DEBUG update 3d viewer with dict: \n\t{}'.format(hover_data_dict))
-                try:
-                    point_index = hover_data_dict['points'][0]['pointNumber']
-                except TypeError:
-                    point_index = 0
-        else:
-            print('DEBUG: update of 3d viewer prevented by callback_context.triggered=False')
-            raise PreventUpdate
-
-        viewer_data = frontend.visualiser.construct_3d_view_data(data, point_index,
-                                                                                   periodic_repetition_str)
-        return dash_bio.Molecule3dViewer(**viewer_data)
+        return callbacks.update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str)
 
     @app.callback([Output('dropdown-x-axis', 'options'),
                    Output('dropdown-y-axis', 'options'),
@@ -184,15 +86,15 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
         :param data:
         :return:
         """
-
         print('DEBUG: the config is: \n', app.config)
-
-        options = [{'label': '{}'.format(l), 'value': i} for i, l in enumerate(pd.read_json(data['df_json']).columns)]
-
-        return options, options, options, options
+        return callbacks.update_dropdown_options(data)
 
     # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
-    app.run_server(debug=False, port=9999)
+    try:
+        app.run_server(debug=False, port=9999, host='0.0.0.0')
+    except OSError:
+        print("OSError on host='0.0.0.0' so trying the command without of it as well")
+        app.run_server(debug=False, port=9998)
 
 
 if __name__ == "__main__":
