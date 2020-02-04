@@ -7,7 +7,6 @@ description = 'Plotly app for viewing of atomistic data'
 setup(name='projection_viewer',
       packages=find_packages(),  # ['projection_viewer'],
       scripts=['scripts/visualize_plot',
-               'scripts/visualize_abcd',
                'scripts/visualize_abcd_summary'],
       keywords='ase, database, dash, plotly, dash_bio',
       version='0.1.0',
