@@ -1,0 +1,127 @@
+#!python3
+
+import sys
+
+import dash_core_components as dcc
+import dash_html_components as html
+from dash import Dash
+from dash.dependencies import Output, Input, State
+
+from projection_viewer import callbacks
+from projection_viewer.frontend import layouts
+from projection_viewer.frontend import visualiser
+from projection_viewer.utils import get_asset_folder
+
+separator = html.Span(className="class__abcd_separator", style={'width': '5%', 'display': 'inline-block'})
+
+
+def local_layout(data):
+    # Setup of app
+    app = Dash(__name__, assets_folder=get_asset_folder())
+
+    # layout
+    app.layout = dcc.Tabs(id="tabs", value='tab-1', children=[
+        dcc.Tab(label='ABCD', value='ABCD', children=layouts.get_tab_layout_abcd_summary()),
+        dcc.Tab(label='Visualiser', value='Visualiser', children=layouts.get_tab_layout_visualiser(data)),
+    ])
+
+    return app
+
+
+def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_radius=1.0, mode='molecular'):
+    # initial data, mainly the styles
+    initial_data = dict()
+    initial_data['styles'] = visualiser.get_style_config_dict('', height_viewer, width_viewer, webgl=False)
+    initial_data['soap_cutoff_radius'] = soap_cutoff_radius
+    initial_data['marker_radius'] = marker_radius
+    initial_data['mode'] = mode
+
+    # set up the application
+    app = local_layout(initial_data)
+
+    @app.callback(Output('markdown_output', 'children'),
+                  [Input('button_summary', 'n_clicks')],
+                  [State('abcd_query_input_box', 'value'),
+                   State('abcd_prop_input_box', 'value')])
+    def show_summary(click, q_val, p_val):
+        return callbacks.show_summary(click, q_val, p_val)
+
+    @app.callback(
+        Output('app-memory', 'data'),
+        [Input('button_visualise', 'n_clicks')],
+        [State('abcd_query_input_box', 'value'),
+         State('abcd_prop_input_box', 'value'),
+         State('app-memory', 'data')])
+    def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally):
+        """
+        Updates the data of the viewer as a result of a new ABCD query.
+
+        Note:
+        Takes time and computation, so need to be optimised and ran the minimal number of times.
+        """
+        return callbacks.update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally)
+
+    @app.callback(Output('graph', 'figure'),
+                  [Input('app-memory', 'data'),
+                   Input('dropdown-x-axis', 'value'),
+                   Input('dropdown-y-axis', 'value'),
+                   Input('dropdown-marker-size', 'value'),
+                   Input('dropdown-marker-colour', 'value'),
+                   Input('slider_marker_size_range', 'value'),
+                   Input('slider_marker_size_limits', 'value'),
+                   Input('slider_marker_color_limits', 'value'),
+                   Input('input-marker-opacity', 'value'),
+                   Input('input-colourscale', 'value')])
+    def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key, marker_size_range,
+                     marker_size_limits, marker_colour_limits, marker_opacity_value, colourscale_name):
+
+        return callbacks.update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key,
+                                      marker_size_range, marker_size_limits, marker_colour_limits, marker_opacity_value,
+                                      colourscale_name)
+
+    @app.callback(Output('div-3dviewer', 'children'),
+                  [Input('graph', 'clickData'),
+                   Input('app-memory', 'data'),
+                   Input('input_periodic_repetition_structure', 'value')])
+    def update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str):
+        """
+        Update the visualiser on a hover event.
+        If the event is None, then no change occurs.
+
+        Note:
+        Initialisation is handled by the change of data callback.
+
+        :param hover_data_dict:
+        :param data:
+        :return:
+        """
+
+        return callbacks.update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str)
+
+    @app.callback([Output('dropdown-x-axis', 'options'),
+                   Output('dropdown-y-axis', 'options'),
+                   Output('dropdown-marker-size', 'options'),
+                   Output('dropdown-marker-colour', 'options')],
+                  [Input('app-memory', 'data')])
+    def update_dropdown_options(data):
+        """
+        Change the contents of the dropdown menus to the dataframe columns.
+
+        Need to call after init, but the data change is doing at_json actually
+
+        :param data:
+        :return:
+        """
+        print('DEBUG: the config is: \n', app.config)
+        return callbacks.update_dropdown_options(data)
+
+    # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
+    try:
+        app.run_server(debug=False, port=9999, host='0.0.0.0')
+    except OSError:
+        print("OSError on host='0.0.0.0' so trying the command without of it as well")
+        app.run_server(debug=False, port=9998)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

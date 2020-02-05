@@ -1,0 +1,137 @@
+#!python3
+
+import argparse
+import sys
+
+# app
+from dash.dependencies import Output, Input
+
+from projection_viewer import callbacks
+from projection_viewer import frontend
+from projection_viewer import utils
+from projection_viewer.utils import get_asset_folder
+
+
+def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
+         height_viewer=500, width_viewer=500, webgl=True):
+    # read the data for the first time
+    initial_data = dict()
+
+    # either from config or the args
+    if config_filename is not None and config_filename != 'None':
+        initial_data.update(frontend.layouts.parse_config(config_filename))
+    else:
+        initial_data['styles'] = frontend.visualiser.get_style_config_dict(title, height_viewer,
+                                                                           width_viewer, webgl=webgl)
+        initial_data['soap_cutoff_radius'] = soap_cutoff_radius
+        initial_data['marker_radius'] = marker_radius
+
+    # update with the xyz data
+    if 'extended_xyz_file' in initial_data.keys():
+        initial_data.update(utils.load_xyz(initial_data['extended_xyz_file'], initial_data['mode']))
+    else:
+        initial_data.update(utils.load_xyz(filename, mode))
+
+    # set up the application
+    app = frontend.layouts.initialise_application(initial_data, assets_folder=get_asset_folder())
+
+    @app.callback(Output('graph', 'figure'),
+                  [Input('app-memory', 'data'),
+                   Input('dropdown-x-axis', 'value'),
+                   Input('dropdown-y-axis', 'value'),
+                   Input('dropdown-marker-size', 'value'),
+                   Input('dropdown-marker-colour', 'value'),
+                   Input('slider_marker_size_range', 'value'),
+                   Input('slider_marker_size_limits', 'value'),
+                   Input('slider_marker_color_limits', 'value'),
+                   Input('input-marker-opacity', 'value'),
+                   Input('input-colourscale', 'value')])
+    def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key, marker_size_range,
+                     marker_size_limits, marker_colour_limits, marker_opacity_value, colourscale_name):
+
+        return callbacks.update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_key,
+                                      marker_size_range, marker_size_limits, marker_colour_limits, marker_opacity_value,
+                                      colourscale_name)
+
+    @app.callback(Output('div-3dviewer', 'children'),
+                  [Input('graph', 'clickData'),
+                   Input('app-memory', 'data'),
+                   Input('input_periodic_repetition_structure', 'value')])
+    def update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str):
+        """
+        Update the visualiser on a hover event.
+        If the event is None, then no change occurs.
+
+        Note:
+        Initialisation is handled by the change of data callback.
+
+        :param hover_data_dict:
+        :param data:
+        :return:
+        """
+
+        return callbacks.update_3d_viewer_on_hover(hover_data_dict, data, periodic_repetition_str)
+
+    @app.callback([Output('dropdown-x-axis', 'options'),
+                   Output('dropdown-y-axis', 'options'),
+                   Output('dropdown-marker-size', 'options'),
+                   Output('dropdown-marker-colour', 'options')],
+                  [Input('app-memory', 'data')])
+    def update_dropdown_options(data):
+        """
+        Change the contents of the dropdown menus to the dataframe columns.
+
+        Need to call after init, but the data change is doing at_json actually
+
+        :param data:
+        :return:
+        """
+        print('DEBUG: the config is: \n', app.config)
+        return callbacks.update_dropdown_options(data)
+
+    # apparently in DEBUG=True mode, the main() is executed twice. I am not sure why. (tks32)
+    try:
+        app.run_server(debug=False, port=9999, host='0.0.0.0')
+    except OSError:
+        print("OSError on host='0.0.0.0' so trying the command without of it as well")
+        app.run_server(debug=False, port=9998)
+
+
+if __name__ == "__main__":
+    # parse arguments
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--fxyz', type=str, help='Location of xyz file')
+    parser.add_argument('--config-file', type=str, default='None',
+                        help='Config file that configures and overwrites every other argument')
+    parser.add_argument('--width', type=int, default=600, help='Adjustment of graph width for small or large screens')
+    parser.add_argument('--height', type=int, default=600, help='Adjustment of graph height for small or large screens')
+    parser.add_argument('--mode', type=str, default='molecular',
+                        help='Mode of projection ([molecular], [atomic]), "compound" coming soon')
+    parser.add_argument('--title', type=str, default='Example', help='Titile of the plot')
+
+    parser.add_argument('--marker-radius', type=float, default=1.0,
+                        help='Radius of the green sphere, that in atomic mode allows you to identify '
+                             'the current atom in the structure')
+    parser.add_argument('--soap-cutoff', type=float, default=3.0,
+                        help='Cutoff radius for wireframe of SOAP in atomic mode')
+    parser.add_argument('--webgl', nargs='?', type=utils.str2bool, const=True, default=True,
+                        help='Trigger the usage of WebGl in the viewer')
+
+    # print help if no args were given
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    args = parser.parse_args()
+
+    print(args)
+
+    sys.exit(main(filename=args.fxyz,
+                  height_viewer=args.height,
+                  width_viewer=args.width,
+                  mode=args.mode,
+                  title=args.title,
+                  config_filename=args.config_file,
+                  marker_radius=args.marker_radius,
+                  soap_cutoff_radius=args.soap_cutoff,
+                  webgl=args.webgl))
