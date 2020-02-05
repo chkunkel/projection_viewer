@@ -1,5 +1,6 @@
 import json
 import os
+from argparse import ArgumentTypeError
 from copy import deepcopy
 
 import ase
@@ -273,14 +274,38 @@ def get_asset_folder():
     return os.path.join(_ROOT, '../assets')
 
 
-def get_hoverinfo_texts(dataframe):
+def get_hoverinfo_texts(dataframe, max_n_cols=20):
     """
     By chkunkel, taken from repo at merge time.
+
+    Added feature by Tamas Stenczel: limit the number of columns used for performance, this would need to have
+    a parameter or some logic for choosing which ones to include.
     """
     hover_texts = []
+    if max_n_cols > len(dataframe.columns):
+        # take all of them then
+        max_n_cols = -1
+
     for i, row in dataframe.iterrows():
         str_hover = ''
-        for c in dataframe.columns:
+        for c in dataframe.columns[:max_n_cols]:
             str_hover += '{}: {}<br>'.format(c, row[c])
         hover_texts.append(str_hover)
     return hover_texts
+
+
+def str2bool(v):
+    """
+    argument parsing helper, string to boolean converter
+
+    basis taken from
+    https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    """
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1', 'True', 'TRUE', 'YES', 'Yes'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0', 'False', 'No', 'NO'):
+        return False
+    else:
+        raise ArgumentTypeError('Boolean value expected.')

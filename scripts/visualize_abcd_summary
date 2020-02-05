@@ -31,7 +31,7 @@ def local_layout(data):
 def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_radius=1.0, mode='molecular'):
     # initial data, mainly the styles
     initial_data = dict()
-    initial_data['styles'] = visualiser.get_style_config_dict('', height_viewer, width_viewer)
+    initial_data['styles'] = visualiser.get_style_config_dict('', height_viewer, width_viewer, webgl=False)
     initial_data['soap_cutoff_radius'] = soap_cutoff_radius
     initial_data['marker_radius'] = marker_radius
     initial_data['mode'] = mode

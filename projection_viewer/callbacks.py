@@ -6,7 +6,7 @@ import traceback
 import dash_bio
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from dash import callback_context
 from dash.exceptions import PreventUpdate
 
@@ -211,8 +211,18 @@ def update_graph(data, x_axis_key, y_axis_key, marker_size_key, marker_colour_ke
     except KeyError:
         list_hovertexts = []
 
+    try:
+        if data['webgl']:
+            scatter = go.Scattergl
+        else:
+            scatter = go.Scatter
+    except KeyError:
+        # by default skip the usage of WebGl
+        print("DEBUG: update_graph() failed to access data['webgl'], so not using WebGl")
+        scatter = go.Scatter
+
     graph_data = {
-        'data': [go.Scatter(
+        'data': [scatter(
             x=dataframe[dataframe.columns.tolist()[x_axis_key]].tolist(),
             y=dataframe[dataframe.columns.tolist()[y_axis_key]].tolist(),
             mode='markers',

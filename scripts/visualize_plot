@@ -13,7 +13,7 @@ from projection_viewer.utils import get_asset_folder
 
 
 def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filename=None, title='Example',
-         height_viewer=500, width_viewer=500):
+         height_viewer=500, width_viewer=500, webgl=True):
     # read the data for the first time
     initial_data = dict()
 
@@ -25,6 +25,7 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
                                                                            width_viewer)
         initial_data['soap_cutoff_radius'] = soap_cutoff_radius
         initial_data['marker_radius'] = marker_radius
+        initial_data['webgl'] = webgl
 
     # update with the xyz data
     if 'extended_xyz_file' in initial_data.keys():
@@ -115,12 +116,16 @@ if __name__ == "__main__":
                              'the current atom in the structure')
     parser.add_argument('--soap-cutoff', type=float, default=3.0,
                         help='Cutoff radius for wireframe of SOAP in atomic mode')
+    parser.add_argument('--webgl', nargs='?', type=utils.str2bool, const=True, default=True,
+                        help='Trigger the usage of WebGl in the viewer')
 
     # print help if no args were given
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
+
+    print(args)
 
     sys.exit(main(filename=args.fxyz,
                   height_viewer=args.height,
@@ -129,4 +134,5 @@ if __name__ == "__main__":
                   title=args.title,
                   config_filename=args.config_file,
                   marker_radius=args.marker_radius,
-                  soap_cutoff_radius=args.soap_cutoff))
+                  soap_cutoff_radius=args.soap_cutoff,
+                  webgl=args.webgl))
