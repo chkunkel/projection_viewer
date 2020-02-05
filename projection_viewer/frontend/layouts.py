@@ -5,7 +5,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash import Dash
 
-from projection_viewer.utils import get_asset_folder
+from projection_viewer.utils import get_asset_folder, str2bool
 
 
 def initialise_application_with_abcd(data, assets_folder=get_asset_folder()):
@@ -172,6 +172,7 @@ def parse_config(config_filename):
     """
     Reads parameters form a config file.
     """
+
     data = {}
     config = configparser.ConfigParser()
     config.read(config_filename)
@@ -184,6 +185,7 @@ def parse_config(config_filename):
     data['styles']['title'] = config['Basic']['title']
     data['styles']['height_viewer'] = int(config['Basic']['height_graph'])
     data['styles']['width_viewer'] = int(config['Basic']['height_graph'])
+    data['styles']['webgl'] = str2bool(config['Basic']['webgl'])
 
     return data
 

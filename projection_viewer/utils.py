@@ -198,6 +198,7 @@ def load_xyz(filename, mode='atomic', verbose=True):
         'atom_index_in_systems': (N,) int,  indices of atoms inside the frames; None if mode=atomic
         'df_json': the dataframe in json format
         'atoms_list_json': json list, the atoms objects encoded into json format
+        'list_hovertexts': (N,) str, list of texts (~HTML) to show on hovering over the points
         'mode': str, mode saved
 
 
