@@ -18,9 +18,10 @@ RUN eval "$(ssh-agent -s)"
 RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 
-#
-#RUN git clone --depth 1 --branch=dev_docker --single-branch git@github.com:chkunkel/projection_viewer.git
-RUN git clone --depth 1 --branch=merger --single-branch git@github.com:stenczelt/projection_viewer.git
+# get the repo, this is private and hence the key is needed
+# fixme: change the branch when merger happens
+RUN git clone --depth 1 --branch=dev_docker --single-branch git@github.com:chkunkel/projection_viewer.git
+#RUN git clone --depth 1 --branch=merger --single-branch git@github.com:stenczelt/projection_viewer.git
 
 # END OF DANGER
 # ------------------------------------------------------------------------
@@ -35,14 +36,15 @@ RUN apt-get update; \
     apt-get install -y vim gcc build-essential
 
 RUN conda update -n base -c defaults conda
-RUN conda env create -f /opt/projection_viewer/docker/env.yml    # env given
-RUN echo "source activate projection" > ~/.bashrc
+RUN conda env update -n=base --file=/opt/projection_viewer/docker/env.yml    # env given
+RUN echo "source activate base" > ~/.bashrc
 ENV PATH /opt/conda/envs/env/bin:$PATH
 
 #RUN conda install -c conda-forge dscribe=0.2.9
 RUN git clone --depth 1 --recursive https://github.com/plotly/dash-bio-utils.git /opt/dash-bio-utils && cd /opt/dash-bio-utils && python setup.py install
 RUN pip install git+https://github.com/chkunkel/dash-bio.git
 RUN pip install git+https://github.com/libAtoms/abcd.git
+# fixme: change the branch when merger happens
 RUN pip install git+https://github.com/BingqingCheng/ASAP.git@tks32_dev_modularise
 
 RUN cd /opt/projection_viewer && python setup.py install
