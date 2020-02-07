@@ -1,0 +1,24 @@
+[Basic]
+
+#extended_xyz_file=ASAP-pca-d6_water_example_small.xyz
+extended_xyz_file=xyzs_visualizer_init.xyz
+# path to extended xyz file containing embedding coordinates and properties (molecular or atomic)
+
+height_graph=700
+width_graph=600
+# adjust this if your screen is too large or small
+
+mode=compound
+# can be "compound" for e.g. molecule or lattice embedding or "atomic" for atomic embedding
+
+title=Water-MD example 
+# title for the plot
+
+marker_radius=1.0
+# radius of the green sphere, that in atomic mode allows you to identify the current atom in the structure
+soap_cutoff_radius=4.0
+# Additionally, the SOAP cutoff_radius can be displayed in a gray wireframe
+# the cutoff_radius you used in the construction of the SOAP-vector
+# this is only important if you are in mode=atomic and you want the
+# realistic size of your atomic environment to be shown, if you 
+# do not need this feature, just set it to 2.5 and you'll get a nice marker anyways.
