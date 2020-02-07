@@ -183,7 +183,22 @@ def parse_config(config_filename):
 
     data['styles'] = {}
     data['styles']['title'] = config['Basic']['title']
-    data['styles']['height_viewer'] = int(config['Basic']['height_graph'])
+
+    data['styles']['height_graph'] = int(config['Basic']['height_graph'])
+    data['styles']['width_graph'] = int(config['Basic']['width_graph'])
+
+    # take height and width of the viewer with backward compatibility;
+    # the layout might be over-defined like this though
+    try:
+        data['styles']['width_viewer'] = int(config['Basic']['width_viewer'])
+    except KeyError:
+        data['styles']['width_viewer'] = int(config['Basic']['width_graph'])
+
+    try:
+        data['styles']['width_viewer'] = int(config['Basic']['width_viewer'])
+    except KeyError:
+        data['styles']['width_viewer'] = int(config['Basic']['width_graph'])
+
     data['styles']['width_viewer'] = int(config['Basic']['height_graph'])
     data['styles']['webgl'] = str2bool(config['Basic']['webgl'])
 

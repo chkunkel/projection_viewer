@@ -21,8 +21,8 @@ def main(filename, mode, soap_cutoff_radius=4.5, marker_radius=1.0, config_filen
     if config_filename is not None and config_filename != 'None':
         initial_data.update(frontend.layouts.parse_config(config_filename))
     else:
-        initial_data['styles'] = frontend.visualiser.get_style_config_dict(title, height_viewer,
-                                                                           width_viewer, webgl=webgl)
+        initial_data['styles'] = frontend.visualiser.get_style_config_dict(title, height_viewer, width_viewer,
+                                                                           height_viewer, webgl=webgl)
         initial_data['soap_cutoff_radius'] = soap_cutoff_radius
         initial_data['marker_radius'] = marker_radius
 

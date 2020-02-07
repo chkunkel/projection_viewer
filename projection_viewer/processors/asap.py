@@ -22,14 +22,14 @@ def abcd_exec_query_and_run_asap(query_string, peratom=True, soap_n=6, soap_l=8,
     os.system(abcd_command)
 
     # exec ASAP gen_soap_descriptors.py
-    desc_executeable = "python gen_soap_descriptors.py"
+    desc_executeable = "gen_soap_descriptors.py"
     asap_soap_command = "{ex} -fxyz {fn} --l {l} --n {n} --g {g} --periodic True --rcut {cut} " \
                         "--peratom {peratom}".format(fn=abcd_fn, ex=desc_executeable, peratom=peratom, g=soap_g,
                                                      n=soap_n, l=soap_l, cut=soap_rcut)
     os.system(asap_soap_command)
 
     # exec ASAP pca_minimal.py
-    pca_executeable = "python pca_minimal.py"
+    pca_executeable = "pca_minimal.py"
     final_fn = "ASAP-pca-d4-new.xyz"
     asap_pca_command = "{ex} --desc-key {key} --fxyz {in_fn} --output {fn} -d 4 --scale True " \
                        "--peratom {peratom}".format(fn=final_fn, ex=pca_executeable, peratom=peratom, in_fn=foutput,

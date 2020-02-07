@@ -7,11 +7,11 @@ from ase.data.colors import jmol_colors
 from projection_viewer.utils import get_hex_color, json2atoms, make_periodic_ase_at, ase2json
 
 
-def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, **kwargs):
+def get_style_config_dict(title='Example', height_viewer=500, width_viewer=500, height_graph=500, **kwargs):
     config_dict = dict(title=title,
                        height_viewer=height_viewer,
                        width_viewer=width_viewer,
-                       height_graph=height_viewer,
+                       height_graph=height_graph,
                        **kwargs)
 
     return config_dict
