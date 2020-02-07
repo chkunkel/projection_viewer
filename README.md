@@ -61,8 +61,34 @@ https://github.com/libatoms/abcd
 
 run `visualise_abcd_summary` and dig in your database, then click 'Visualise' on the ABCD tab to take the chosen frames to the visualiser tab   
 
- 
 
+#### Usage in docker
+Currently a manual uploaded image is available, that was built on 7/2/2020 by Tamas K. Stenczel.
+To access it:
+1. pull the image
+    ```
+    docker pull stenczelt/projection-abcd:latest
+    ```
+2. create a docker network, which enables the containers to communicate with each other and the outside world as well 
+    ```
+    docker network create --driver bridge abcd-network
+    ```
+3. run the mongo (ABCD) and the visualiser as well
+    ```
+    docker run -d --rm --name abcd-mongodb-net -v <path-on-your-machine-to-store-database>:/data/db -p 27017:27017 --network abcd-network mongo
+    docker run -it --rm --name visualiser-dev -p 9999:9999 --network abcd-network stenczelt/projection-abcd
+    ```
+    NB: You need a a directory where the database files are kept locally and you need to connect this to the mongo 
+    container. More info about this can be found in the original ABCD repo
+    
+This will start the visualiser with ABCD integration! Have fun!
+
+After usage, for cleanup:
+```
+docker stop visualiser-dev abcd-mongodb-net         # stop the containers
+docker rm visualiser-dev abcd-mongodb-net           # remove them if --rm did not
+docker network rm abcd-network                      # remove the docker network
+``` 
  
 #### Authors: 
 

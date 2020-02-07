@@ -8,7 +8,6 @@ RUN apt-get install -y git
 
 # add credentials on build
 ARG SSH_PRIVATE_KEY
-ARG SSH_PRIVATE_KEY2
 RUN mkdir /root/.ssh/
 RUN echo "${SSH_PRIVATE_KEY}" > /root/.ssh/id_rsa
 RUN chmod 700 /root/.ssh/id_rsa
@@ -21,7 +20,7 @@ RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 # get the repo, this is private and hence the key is needed
 # fixme: change the branch when merger happens
 RUN git clone --depth 1 --branch=dev_docker --single-branch git@github.com:chkunkel/projection_viewer.git
-#RUN git clone --depth 1 --branch=merger --single-branch git@github.com:stenczelt/projection_viewer.git
+#RUN git clone --depth 1 --branch=docker --single-branch git@github.com:stenczelt/projection_viewer.git
 
 # END OF DANGER
 # ------------------------------------------------------------------------
@@ -40,7 +39,6 @@ RUN conda env update -n=base --file=/opt/projection_viewer/docker/env.yml    # e
 RUN echo "source activate base" > ~/.bashrc
 ENV PATH /opt/conda/envs/env/bin:$PATH
 
-#RUN conda install -c conda-forge dscribe=0.2.9
 RUN git clone --depth 1 --recursive https://github.com/plotly/dash-bio-utils.git /opt/dash-bio-utils && cd /opt/dash-bio-utils && python setup.py install
 RUN pip install git+https://github.com/chkunkel/dash-bio.git
 RUN pip install git+https://github.com/libAtoms/abcd.git
@@ -50,3 +48,4 @@ RUN cd /opt/projection_viewer && python setup.py install
 
 RUN echo "{\"url\": \"mongodb://abcd-mongodb-net\"}" > /root/.abcd
 WORKDIR /opt/
+CMD visualize_abcd_summary
