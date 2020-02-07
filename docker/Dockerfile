@@ -44,8 +44,7 @@ ENV PATH /opt/conda/envs/env/bin:$PATH
 RUN git clone --depth 1 --recursive https://github.com/plotly/dash-bio-utils.git /opt/dash-bio-utils && cd /opt/dash-bio-utils && python setup.py install
 RUN pip install git+https://github.com/chkunkel/dash-bio.git
 RUN pip install git+https://github.com/libAtoms/abcd.git
-# fixme: change the branch when merger happens
-RUN pip install git+https://github.com/BingqingCheng/ASAP.git@tks32_dev_modularise
+RUN pip install git+https://github.com/BingqingCheng/ASAP.git
 
 RUN cd /opt/projection_viewer && python setup.py install
 
