@@ -72,7 +72,7 @@ def show_summary(click, q_val, p_val):
     return md_output
 
 
-def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally):
+def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice='ASAP'):
     """
     Updates the data of the viewer as a result of a new ABCD query.
 
@@ -101,7 +101,11 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally):
 
     # run the ABCD query
     try:
-        new_fn = processors.asap.abcd_exec_query_and_run_asap(q_value)
+        if processor_choice == 'ASAP':
+            new_fn = processors.asap.abcd_exec_query_and_run_asap(q_value)
+        else:
+            # fixme: this needs to be changed if there are more processing scripts available
+            new_fn = processors.asap.no_processor(q_value)
         new_data = utils.load_xyz(new_fn, data_originally['mode'])
         data_originally.update(new_data)
     except KeyboardInterrupt:

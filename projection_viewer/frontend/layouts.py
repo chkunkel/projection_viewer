@@ -371,7 +371,7 @@ def get_tab_layout_abcd_summary():
             html.Span(className='class__abcd_controls',
                       children=[dcc.Dropdown(id='dropdown-processor',
                                              options=[dict(label='None', value='none'),
-                                                      dict(label='ASAP', value='ASAP')], value=0)]),
+                                                      dict(label='ASAP', value='ASAP')], value='ASAP')]),
 
             # input for asap descriptor string
             html.Br(),

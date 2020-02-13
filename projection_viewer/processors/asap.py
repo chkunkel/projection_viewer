@@ -1,4 +1,17 @@
 import os
+from subprocess import run
+
+
+def abcd_download(fn, query_string):
+    # exec ABCD download
+    abcd_command = ['abcd', 'download', fn, '-f', 'xyz', '-q', query_string]
+    run(abcd_command)
+
+
+def no_processor(query_string):
+    abcd_fn = 'raw_abcd_data.xyz'
+    abcd_download(abcd_fn, query_string)
+    return abcd_fn
 
 
 def abcd_exec_query_and_run_asap(query_string, peratom=False, soap_n=6, soap_l=8, soap_rcut=4.5, soap_g=0.5):
@@ -18,8 +31,7 @@ def abcd_exec_query_and_run_asap(query_string, peratom=False, soap_n=6, soap_l=8
 
     # exec ABCD download
     abcd_fn = 'raw_abcd_data.xyz'
-    abcd_command = 'abcd download {fn} -f xyz -q "{qq}"'.format(qq=query_string, fn=abcd_fn)
-    os.system(abcd_command)
+    abcd_download(abcd_fn, query_string)
 
     # exec ASAP gen_soap_descriptors.py
     desc_executeable = "gen_soap_descriptors.py"
