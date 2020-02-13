@@ -33,44 +33,27 @@ def show_summary(click, q_val, p_val):
 
     if isinstance(q_val, str):
         q_val = q_val.replace('\n', ' ')
-        q_val = q_val.replace('"', '\\"')
         if q_val.strip() == '':
             q_val = None
 
     if isinstance(p_val, str):
         p_val = p_val.replace('\n', ' ')
-        p_val = p_val.replace('"', '\\"')
         if p_val.strip() == '':
             p_val = None
 
     print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
 
-    try:
-        # noinspection PyUnresolvedReferences
-        run = get_ipython().getoutput
-        ipy_runner = True
-    except NameError:
-        def run(cmd):
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            result = result.stdout.decode('utf-8')
-            return result.split('\n')
+    def run(cmd):
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        result = result.stdout.decode('utf-8')
+        return result.split('\n')
 
-        ipy_runner = False
-
-    # define command as needed
-    if ipy_runner:
-        abcd_cmd = 'abcd summary '
-        if p_val is not None:
-            abcd_cmd += ' -p "{}"'.format(p_val)
-        if q_val is not None:
-            abcd_cmd += ' -q "{}"'.format(q_val)
-
-    else:
-        abcd_cmd = ['abcd', 'summary']
-        if p_val is not None:
-            abcd_cmd += ['-p', p_val]
-        if q_val is not None:
-            abcd_cmd += ['-q', q_val]
+    # construct the summary command as a list for subprocess.run
+    abcd_cmd = ['abcd', 'summary']
+    if p_val is not None:
+        abcd_cmd += ['-p', p_val]
+    if q_val is not None:
+        abcd_cmd += ['-q', q_val]
 
     # get the output
     print('\n\nDEBUG: abcd command:\n>>>{}'.format(abcd_cmd))
@@ -78,10 +61,7 @@ def show_summary(click, q_val, p_val):
 
     try:
         if '...' in abcd_out[-1]:
-            if ipy_runner:
-                abcd_out = run(abcd_cmd + ' --all')
-            else:
-                abcd_out = run(abcd_cmd + [' --all'])
+            abcd_out = run(abcd_cmd + [' --all'])
     except IndexError:
         pass
 
