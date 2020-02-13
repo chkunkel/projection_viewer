@@ -20,10 +20,13 @@ def local_layout(data):
     app = Dash(__name__, assets_folder=get_asset_folder())
 
     # layout
-    app.layout = dcc.Tabs(id="tabs", value='tab-1', children=[
-        dcc.Tab(label='ABCD', value='ABCD', children=layouts.get_tab_layout_abcd_summary()),
-        dcc.Tab(label='Visualiser', value='Visualiser', children=layouts.get_tab_layout_visualiser(data)),
-    ])
+    app.layout = html.Div(children=
+                          [dcc.Store(id='app-memory', data=data, storage_type='session'),
+                           dcc.Tabs(id="tabs", value='tab-1', children=[
+                               dcc.Tab(label='ABCD', value='ABCD', children=layouts.get_tab_layout_abcd_summary()),
+                               dcc.Tab(label='Visualiser', value='Visualiser',
+                                       children=layouts.get_tab_layout_visualiser(data, store=False)),
+                           ])])
 
     return app
 

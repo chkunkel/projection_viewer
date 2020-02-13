@@ -163,7 +163,7 @@ def initialise_application(data, assets_folder=get_asset_folder()):
     app = Dash(__name__, assets_folder=assets_folder)
 
     # layout
-    app.layout = get_tab_layout_visualiser(data)
+    app.layout = get_tab_layout_visualiser(data, store=True)
 
     return app
 
@@ -206,7 +206,7 @@ def parse_config(config_filename):
 
 
 # noinspection PyUnresolvedReferences
-def get_tab_layout_visualiser(data):
+def get_tab_layout_visualiser(data, store=True):
     # STYLE SETTINGS
     # const_style_dropdown = {'height': '35px', 'width': '100%', 'display': 'inline-block'}
     const_style_dropdown = dict()
@@ -217,7 +217,7 @@ def get_tab_layout_visualiser(data):
     layout = html.Div(className='app-body',
                       children=[
                           # storage of the data in the application
-                          dcc.Store(id='app-memory', data=data, storage_type='session'),
+                          dcc.Store(id='app-memory', data=data, storage_type='session') if store else None,
 
                           # Controls: Dropdown menus, opacity and choice of colourscale
                           html.Div(className="app__controls", children=[
