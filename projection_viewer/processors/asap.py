@@ -1,7 +1,7 @@
 import os
 
 
-def abcd_exec_query_and_run_asap(query_string, peratom=True, soap_n=6, soap_l=8, soap_rcut=4.5, soap_g=0.5):
+def abcd_exec_query_and_run_asap(query_string, peratom=False, soap_n=6, soap_l=8, soap_rcut=4.5, soap_g=0.5):
     """
     Executes the given query in ABCD and runs asap on it, then returns the filename of the final xyz to be read in.
 
