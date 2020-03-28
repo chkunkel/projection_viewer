@@ -31,13 +31,13 @@ def local_layout(data):
     return app
 
 
-def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_radius=1.0, mode='molecular'):
+def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_radius=1.0):
     # initial data, mainly the styles
     initial_data = dict()
     initial_data['styles'] = visualiser.get_style_config_dict('', height_viewer, width_viewer, webgl=False)
     initial_data['soap_cutoff_radius'] = soap_cutoff_radius
     initial_data['marker_radius'] = marker_radius
-    initial_data['mode'] = mode
+    initial_data['mode'] = 'molecular'
 
     # set up the application
     app = local_layout(initial_data)
@@ -55,8 +55,9 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
         [State('abcd_query_input_box', 'value'),
          State('abcd_prop_input_box', 'value'),
          State('app-memory', 'data'),
-         State('dropdown-processor', 'value')])
-    def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice):
+         State('dropdown-processor', 'value'),
+         State("dropdown-mode", "value")])
+    def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice, mode_value):
         """
         Updates the data of the viewer as a result of a new ABCD query.
 
@@ -64,7 +65,7 @@ def main(height_viewer=500, width_viewer=500, soap_cutoff_radius=4.5, marker_rad
         Takes time and computation, so need to be optimised and ran the minimal number of times.
         """
 
-        return callbacks.update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice)
+        return callbacks.update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice, mode_value)
 
     @app.callback(Output('graph', 'figure'),
                   [Input('app-memory', 'data'),

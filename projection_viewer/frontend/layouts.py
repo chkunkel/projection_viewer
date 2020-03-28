@@ -367,11 +367,23 @@ def get_tab_layout_abcd_summary():
             # just a title
             html.H3('Processing controls'),
 
+            # dropdown menu for per-atom / per-frame
+            html.Span(className='class__abcd_controls',
+                      children=["Mode", html.Br(),
+                                dcc.Dropdown(id='dropdown-mode',
+                                             options=[dict(label='per atom', value='atomic'),
+                                                      dict(label='per frame', value='molecular')],
+                                             value='molecular',
+                                             clearable=False)]),
+
             # dropdown menu for processor
             html.Span(className='class__abcd_controls',
-                      children=[dcc.Dropdown(id='dropdown-processor',
+                      children=["Processing", html.Br(),
+                                dcc.Dropdown(id='dropdown-processor',
                                              options=[dict(label='None', value='none'),
-                                                      dict(label='ASAP', value='ASAP')], value='ASAP')]),
+                                                      dict(label='ASAP', value='ASAP')],
+                                             value='ASAP',
+                                             clearable=False)]),
 
             # input for asap descriptor string
             html.Br(),

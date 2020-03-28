@@ -72,7 +72,8 @@ def show_summary(click, q_val, p_val):
     return md_output
 
 
-def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice='ASAP'):
+def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, processor_choice='ASAP',
+                                 mode_value='molecular'):
     """
     Updates the data of the viewer as a result of a new ABCD query.
 
@@ -87,7 +88,8 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, pr
                  State('app-memory', 'data')])
     """
 
-    print('CALLBACK update_all_data_on_new_query() beginning\nkeys in data:{}'.format(data_originally.keys()))
+    print('CALLBACK update_all_data_on_new_query() beginning\nkeys in data:{}\nmode before {} and after{}'.format(
+        data_originally.keys(), data_originally['mode'], mode_value))
 
     if n_clicks is None:
         # this is the initial call, on construction of the button
@@ -106,8 +108,9 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, pr
         else:
             # fixme: this needs to be changed if there are more processing scripts available
             new_fn = processors.asap.no_processor(q_value)
-        new_data = utils.load_xyz(new_fn, data_originally['mode'])
+        new_data = utils.load_xyz(new_fn, mode_value)
         data_originally.update(new_data)
+        data_originally['mode'] = mode_value
     except KeyboardInterrupt:
         # handle keyboard interrupt
         print('KeyboardInterrupt in update_all_data_on_new_query()')
@@ -120,7 +123,8 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, pr
 
     print('DEBUG data keys and stuff\nnew keys:{}\nresultant keys:{}\n\n\n\n'.format(new_data.keys(),
                                                                                      data_originally.keys()))
-    print('CALLBACK update_all_data_on_new_query() end\nkeys in data:{}'.format(data_originally.keys()))
+    print('CALLBACK update_all_data_on_new_query() end\nkeys in data:{}\nmode set to {}'.format(
+        data_originally.keys(), data_originally['mode']))
     return data_originally
 
 
