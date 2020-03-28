@@ -104,45 +104,42 @@ def get_hex_color(c_rgb):
 #     return a_str
 
 
-def build_dataframe_features(atoms, mode='molecular'):
+def build_dataframe_features(frames, mode='molecular'):
     if mode == 'atomic':
-        keys = atoms[0].arrays.keys()
+        keys = frames[0].arrays.keys()
     else:
-        keys = atoms[0].info.keys()
+        keys = frames[0].info.keys()
 
     keys_expanded = {}
 
     if mode == 'atomic':
-        at_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
-        at_numbers = list(np.array(at_numbers).flatten())
         sys_ids = []
-        for i, mol in enumerate(atoms):
+        at_numbers = []
+        for i, mol in enumerate(frames):
             sys_ids += [i] * len(mol)
+            at_numbers += list(range(len(mol)))
         keys_expanded['system_ids'] = sys_ids
         keys_expanded['atomic_numbers'] = at_numbers
     elif mode == 'molecular':
-        keys_expanded['system_ids'] = list(range(len(atoms)))
+        keys_expanded['system_ids'] = list(range(len(frames)))
 
     for k in keys:
         try:
             if mode == 'atomic':
-                if len(atoms[0].arrays[k].shape) > 1:
-                    for i in range(atoms[0].arrays[k].shape[1]):
-                        print(k, i)
-                        keys_expanded[k + '_' + str(i)] = np.array(
-                            [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
-                        print(np.array(keys_expanded[k + '_' + str(i)]).shape)
+                if len(frames[0].arrays[k].shape) > 1:
+                    for i, arr in enumerate(np.concatenate([x.arrays[k] for x in frames]).T):
+                        print(k, i, arr.shape)
+                        keys_expanded["{}_{}".format(k, i)] = arr
                 else:
-                    keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
+                    keys_expanded[k] = np.concatenate([x.arrays[k] for x in frames])
                     print(k, len(keys_expanded[k]))
                     continue
-
             else:
-                if isinstance(atoms[0].info[k], np.ndarray):
-                    for i in range(len(atoms[0].info[k])):
-                        keys_expanded[k + '_' + str(i)] = [x.info[k][i] for x in atoms]
+                if isinstance(frames[0].info[k], np.ndarray):
+                    for i in range(len(frames[0].info[k])):
+                        keys_expanded["{}_{}".format(k, i)] = [x.info[k][i] for x in frames]
                 else:
-                    keys_expanded[k] = [x.info[k] for x in atoms]
+                    keys_expanded[k] = [x.info[k] for x in frames]
         except KeyError as err:
             print('Skipping key:', err)
 
