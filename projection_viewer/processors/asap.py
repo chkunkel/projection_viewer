@@ -19,16 +19,16 @@ def no_processor(query_string):
     return abcd_fn
 
 
-def abcd_exec_query_and_run_asap(query_string, peratom=False, soap_n=6, soap_l=8, soap_rcut=4.5, soap_g=0.5):
+def abcd_exec_query_and_run_asap(query_string, mode_value="molecular",
+                                 soap_n=6, soap_l=8, soap_rcut=4.5, soap_g=0.5, d=4, soap_zeta=2.0, soap_periodic=True):
     """
     Executes the given query in ABCD and runs asap on it, then returns the filename of the final xyz to be read in.
 
     Note:
         This is very much in development, proof of concept really.
     """
-    # naming conventions from ASAP fixme: add a parameter of filename to ASAP instead, not hack in here
-    foutput = 'ASAP-n{0}-l{1}-c{2}-g{3}.xyz'.format(str(soap_n), str(soap_l), str(soap_rcut), str(soap_g))
-    desc_name = "SOAP-n{0}-l{1}-c{2}-g{3}".format(str(soap_n), str(soap_l), str(soap_rcut), str(soap_g))
+    # mode to bool
+    peratom = mode_value == "atomic"
 
     # process the query string
     query_string = query_string.replace('\n', ' ')
@@ -38,26 +38,22 @@ def abcd_exec_query_and_run_asap(query_string, peratom=False, soap_n=6, soap_l=8
     abcd_fn = 'raw_abcd_data.xyz'
     abcd_download(abcd_fn, query_string)
 
-    # exec ASAP gen_soap_descriptors.py
-    asap_soap_command = ["gen_soap_descriptors.py",
-                         "-fxyz={}".format(abcd_fn),
-                         "--l={}".format(soap_l),
-                         "--n={}".format(soap_n),
-                         "--g={}".format(soap_g),
-                         "--periodic={}".format(True),
-                         "--rcut={}".format(soap_rcut),
-                         "--peratom={}".format(peratom)]
-    run(asap_soap_command)
-
-    # exec ASAP pca_minimal.py
+    # exec ASAP kpca_for_projection_viewer.py
     final_fn = "ASAP-pca-d4-new.xyz"
-    asap_pca_command = ["pca_minimal.py",
-                        "--desc-key={}".format(desc_name),
-                        "--fxyz={}".format(foutput),
+    asap_pca_command = ["kpca_for_projection_viewer.py",
+                        # file stuff
+                        "-fxyz={}".format(abcd_fn),
                         "--output={}".format(final_fn),
-                        "-d=4",
-                        "--scale={}".format(True),
-                        "--peratom={}".format(peratom)]
+                        # soap & projection stuff
+                        "--d={}".format(d),
+                        "--rcut={}".format(soap_rcut),
+                        "--n={}".format(soap_n),
+                        "--l={}".format(soap_l),
+                        "--g={}".format(soap_g),
+                        "--zeta={}".format(soap_zeta),
+                        "--periodic={}".format(soap_periodic),
+                        "--peratom={}".format(peratom)
+                        ]
 
     run(asap_pca_command)
 

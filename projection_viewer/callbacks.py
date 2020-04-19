@@ -104,7 +104,7 @@ def update_all_data_on_new_query(n_clicks, q_value, p_value, data_originally, pr
     # run the ABCD query
     try:
         if processor_choice == 'ASAP':
-            new_fn = processors.asap.abcd_exec_query_and_run_asap(q_value)
+            new_fn = processors.asap.abcd_exec_query_and_run_asap(q_value, mode_value=mode_value)
         else:
             # fixme: this needs to be changed if there are more processing scripts available
             new_fn = processors.asap.no_processor(q_value)
