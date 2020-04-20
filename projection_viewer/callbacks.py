@@ -15,7 +15,7 @@ from projection_viewer import utils
 from projection_viewer.frontend import visualiser
 
 
-def show_summary(click, q_val, p_val):
+def show_summary(click, q_val, p_val, tickbox_all=None):
     """
 
     Default callback
@@ -25,7 +25,7 @@ def show_summary(click, q_val, p_val):
                State('abcd_prop_input_box', 'value')])
 
     """
-    print('DEBUG: called show_summary() with args \n {}'.format((click, q_val, p_val)))
+    print('DEBUG: called show_summary() with args \n {}'.format((click, q_val, p_val, tickbox_all)))
 
     if click is None:
         print('PreventUpdate in show_summary()')
@@ -41,7 +41,7 @@ def show_summary(click, q_val, p_val):
         if p_val.strip() == '':
             p_val = None
 
-    print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val)))
+    print('DEBUG: args changed to  \n {}'.format((click, q_val, p_val, tickbox_all)))
 
     def run(cmd):
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -54,6 +54,8 @@ def show_summary(click, q_val, p_val):
         abcd_cmd += ['-p', p_val]
     if q_val is not None:
         abcd_cmd += ['-q', q_val]
+    if "all" in tickbox_all:
+        abcd_cmd += ['--all']
 
     # get the output
     print('\n\nDEBUG: abcd command:\n>>>{}'.format(abcd_cmd))

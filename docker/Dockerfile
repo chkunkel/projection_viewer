@@ -19,8 +19,8 @@ RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 # get the repo, this is private and hence the key is needed
 # fixme: change the branch when merger happens
-RUN git clone --depth 1 --branch=dev_docker --single-branch git@github.com:chkunkel/projection_viewer.git
-#RUN git clone --depth 1 --branch=docker --single-branch git@github.com:stenczelt/projection_viewer.git
+#RUN git clone --depth 1 --branch=dev_docker --single-branch git@github.com:chkunkel/projection_viewer.git
+RUN git clone --depth 1 --branch=docker_dev --single-branch git@github.com:stenczelt/projection_viewer.git
 
 # END OF DANGER
 # ------------------------------------------------------------------------
@@ -48,4 +48,8 @@ RUN cd /opt/projection_viewer && python setup.py install
 
 RUN echo "{\"url\": \"mongodb://abcd-mongodb-net\"}" > /root/.abcd
 WORKDIR /opt/
+
+#RUN curl https://gitlab.com/ase/ase/uploads/9d21a3e53bc81af5f12dcb12f7ac44f0/extxyz_quoting.patch
+#RUN patch /opt/conda/lib/python3.7/site-packages/ase/io/extxyz.py    /opt/projection_viewer/docker/extxyz_quoting.patch
+
 CMD visualize_abcd_summary

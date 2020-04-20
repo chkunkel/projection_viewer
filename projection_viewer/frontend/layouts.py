@@ -355,7 +355,11 @@ def get_tab_layout_abcd_summary():
             html.Div(className="class__abcd_controls", children=[
                 html.Button(children='Visualise', id='button_visualise', className="class__abcd_button", ),
                 html.Button(children='Download', id='button_download', className="class__abcd_button"),
-                html.Button(children='Summary', id='button_summary', className="class__abcd_button", ),
+                html.Button(children='Summary', id='button_summary', className="class__abcd_button"),
+                html.Button(children='Show', id='button_show', className="class__abcd_button"),
+                html.Div(children=[
+                    dcc.Checklist(options=[{'label': '--all', 'value': 'all'}], id='tickbox_all', value=['all'])],
+                    className="class__abcd_span_tickbox", ),
             ]),
 
             # the Markdown output

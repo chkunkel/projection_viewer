@@ -103,7 +103,16 @@ p {
     /*margin-left: 2%;*/
     /*margin-right: 2%;*/
     /*alignment: left;*/
-    width: 30%;
+    display: inline-block;
+    width: 20%;
+}
+
+.class__abcd_span_tickbox {
+    margin-left: 2%;
+    margin-right: 2%;
+    /*alignment: left;*/
+    display: inline-block;
+    width: 10%;
 }
 
 .class__abcd_input_filed {
