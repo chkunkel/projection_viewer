@@ -113,8 +113,7 @@ def build_dataframe_features(atoms, mode='molecular'):
     keys_expanded = {}
 
     if mode == 'atomic':
-        at_numbers = [[i for i, y in enumerate(list(mol.get_chemical_symbols()))] for mol in atoms]
-        at_numbers = list(np.array(at_numbers).flatten())
+        at_numbers = np.array([i for mol in atoms for i, y in enumerate(list(mol.get_chemical_symbols()))])
         sys_ids = []
         for i, mol in enumerate(atoms):
             sys_ids += [i] * len(mol)
@@ -130,10 +129,10 @@ def build_dataframe_features(atoms, mode='molecular'):
                     for i in range(atoms[0].arrays[k].shape[1]):
                         print(k, i)
                         keys_expanded[k + '_' + str(i)] = np.array(
-                            [[x.arrays[k][j][i] for j in range(len(x))] for x in atoms]).flatten()
+                            [x.arrays[k][j][i] for x in atoms for j in range(len(x))]).flatten()
                         print(np.array(keys_expanded[k + '_' + str(i)]).shape)
                 else:
-                    keys_expanded[k] = np.array([[x.arrays[k][j] for j in range(len(x))] for x in atoms]).flatten()
+                    keys_expanded[k] = np.array([x.arrays[k][j] for x in atoms for j in range(len(x))]).flatten()
                     print(k, len(keys_expanded[k]))
                     continue
 
